@@ -75,6 +75,105 @@ function PlanRow({ plan, onSave }) {
   )
 }
 
+// ── New Salon Modal ───────────────────────────────────────────
+function NewSalonModal({ plans, onClose, onCreated }) {
+  const [form, setForm] = useState({ name: '', owner: '', plan_id: plans[0]?.id ?? '' })
+  const [saving, setSaving] = useState(false)
+  const [err, setErr] = useState('')
+
+  async function save() {
+    if (!form.name.trim()) { setErr("Salon nomi kiritilmagan"); return }
+    setSaving(true)
+    const plan = plans.find(p => p.id === form.plan_id)
+    const expires = new Date(); expires.setDate(expires.getDate() + 30)
+    const { data, error } = await supabase.from('barbershops').insert({
+      name: form.name.trim(),
+      subscription_plan_id: plan?.id ?? null,
+      subscription_expires_at: expires.toISOString(),
+      sms_limit_remaining: plan?.sms_limit ?? 0,
+      call_limit_remaining: plan?.call_limit ?? 0,
+      is_active: true,
+    }).select('id,name,is_active,subscription_plan_id,subscription_expires_at,sms_limit_remaining,call_limit_remaining,subscription_plans(name,price,sms_limit,call_limit)').single()
+    setSaving(false)
+    if (error) { setErr(error.message); return }
+    onCreated(data); onClose()
+  }
+
+  const inp = { ...G.card, width: '100%', padding: '12px 14px', fontSize: 13, color: '#fff', outline: 'none', borderRadius: 14, boxSizing: 'border-box' }
+
+  return (
+    <Overlay>
+      <ModalBox title="Yangi Salon Qo'shish" onClose={onClose}>
+        <label style={LBL}>Salon nomi</label>
+        <input style={inp} placeholder="23 BRO BARBER" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
+        <label style={LBL}>Egasi ismi</label>
+        <input style={inp} placeholder="Abdulloh Karimov" value={form.owner} onChange={e => setForm(f => ({ ...f, owner: e.target.value }))} />
+        <label style={LBL}>Boshlang'ich tarif</label>
+        <select style={{ ...inp, background: '#0f0a1e' }} value={form.plan_id} onChange={e => setForm(f => ({ ...f, plan_id: e.target.value }))}>
+          {plans.map(p => <option key={p.id} value={p.id}>{p.name} — {p.price.toLocaleString()} UZS</option>)}
+        </select>
+        {err && <p style={{ margin: 0, fontSize: 12, color: '#f87171' }}>{err}</p>}
+        <Btn onClick={save} disabled={saving}>{saving ? 'Yaratilmoqda…' : 'Salon Yaratish'}</Btn>
+      </ModalBox>
+    </Overlay>
+  )
+}
+
+// ── Plan Edit Modal ───────────────────────────────────────────
+function PlanEditModal({ plan, onClose, onSaved }) {
+  const [form, setForm] = useState({ price: String(plan.price), sms_limit: String(plan.sms_limit), call_limit: String(plan.call_limit) })
+  const [saving, setSaving] = useState(false)
+
+  async function save() {
+    setSaving(true)
+    await supabase.from('subscription_plans').update({
+      price: Number(form.price), sms_limit: Number(form.sms_limit), call_limit: Number(form.call_limit),
+    }).eq('id', plan.id)
+    onSaved({ ...plan, price: Number(form.price), sms_limit: Number(form.sms_limit), call_limit: Number(form.call_limit) })
+    setSaving(false); onClose()
+  }
+
+  const inp = { ...G.card, width: '100%', padding: '12px 14px', fontSize: 13, color: '#fff', outline: 'none', borderRadius: 14, boxSizing: 'border-box' }
+
+  return (
+    <Overlay>
+      <ModalBox title={`Tahrirash — ${plan.name}`} onClose={onClose}>
+        {[['Narx (UZS)', 'price'], ['SMS limiti', 'sms_limit'], ["Qo'ng'iroq limiti", 'call_limit']].map(([lbl, key]) => (
+          <div key={key} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <label style={LBL}>{lbl}</label>
+            <input style={inp} type="number" value={form[key]} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))} />
+          </div>
+        ))}
+        <Btn onClick={save} disabled={saving}>{saving ? 'Saqlanmoqda…' : 'Saqlash'}</Btn>
+      </ModalBox>
+    </Overlay>
+  )
+}
+
+// ── Shared modal primitives ───────────────────────────────────
+const LBL = { fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: 0 }
+
+function Overlay({ children }) {
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+      background: 'rgba(0,0,0,0.82)', backdropFilter: 'blur(12px)' }}>
+      {children}
+    </div>
+  )
+}
+
+function ModalBox({ title, onClose, children }) {
+  return (
+    <div style={{ ...G.cardGold, padding: 28, width: '100%', maxWidth: 400, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h2 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: '#fff' }}>{title}</h2>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>✕</button>
+      </div>
+      {children}
+    </div>
+  )
+}
+
 // ── Modal ─────────────────────────────────────────────────────
 function UpdateModal({ shop, plans, onClose, onSaved }) {
   const [planId, setPlanId] = useState(shop.subscription_plan_id ?? '')
@@ -131,6 +230,8 @@ export default function SuperAdminDashboard() {
   const [plans, setPlans] = useState([])
   const [loading, setLoading] = useState(true)
   const [modal, setModal] = useState(null)
+  const [newSalon, setNewSalon] = useState(false)
+  const [editPlan, setEditPlan] = useState(null)
 
   const load = useCallback(async () => {
     const [{ data: s }, { data: p }] = await Promise.all([
@@ -183,15 +284,25 @@ export default function SuperAdminDashboard() {
         <div style={{ position: 'relative', zIndex: 10, maxWidth: 1200, margin: '0 auto', padding: '40px 20px' }}>
 
           {/* Header */}
-          <div style={{ marginBottom: 40 }}>
-            <p style={{ fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(255,204,0,0.45)', marginBottom: 8 }}>
-              Platforma boshqaruvi
-            </p>
-            <h1 style={{ fontSize: 36, fontWeight: 700, margin: 0, letterSpacing: '-0.02em',
-              background: 'linear-gradient(135deg, #fff 40%, rgba(255,204,0,0.7))',
-              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-              SuperAdmin paneli
-            </h1>
+          <div style={{ marginBottom: 40, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 16 }}>
+            <div>
+              <p style={{ fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(255,204,0,0.45)', marginBottom: 8 }}>
+                Platforma boshqaruvi
+              </p>
+              <h1 style={{ fontSize: 36, fontWeight: 700, margin: 0, letterSpacing: '-0.02em',
+                background: 'linear-gradient(135deg, #fff 40%, rgba(255,204,0,0.7))',
+                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                SuperAdmin paneli
+              </h1>
+            </div>
+            <button onClick={() => setNewSalon(true)}
+              style={{ fontSize: 12, fontWeight: 600, padding: '12px 22px', borderRadius: 14, cursor: 'pointer', letterSpacing: '0.06em', whiteSpace: 'nowrap',
+                background: 'rgba(255,204,0,0.1)', color: '#ffcc00', border: '1px solid rgba(255,204,0,0.25)',
+                boxShadow: '0 0 24px rgba(255,204,0,0.12)', transition: 'all .2s' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,204,0,0.18)'; e.currentTarget.style.boxShadow = '0 0 32px rgba(255,204,0,0.22)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,204,0,0.1)'; e.currentTarget.style.boxShadow = '0 0 24px rgba(255,204,0,0.12)' }}>
+              + Yangi Salon Qo'shish
+            </button>
           </div>
 
           {/* Metrics */}
@@ -230,6 +341,7 @@ export default function SuperAdminDashboard() {
                               Hozircha faol salonlar mavjud emas
                             </p>
                             <button
+                              onClick={() => setNewSalon(true)}
                               style={{ fontSize: 12, fontWeight: 600, padding: '10px 20px', borderRadius: 12, cursor: 'pointer', letterSpacing: '0.04em',
                                 background: 'rgba(255,204,0,0.07)', color: '#ffcc00', border: '1px solid rgba(255,204,0,0.2)',
                                 boxShadow: '0 0 20px rgba(255,204,0,0.08)', transition: 'all .2s' }}
@@ -344,6 +456,7 @@ export default function SuperAdminDashboard() {
                   </div>
 
                   <button
+                    onClick={() => setEditPlan(plan)}
                     style={{ marginTop: 'auto', padding: '12px', borderRadius: 14, fontSize: 12, fontWeight: 600, cursor: 'pointer',
                       letterSpacing: '0.06em', transition: 'all .25s',
                       background: `${plan.accent}12`, color: plan.accent,
@@ -369,6 +482,8 @@ export default function SuperAdminDashboard() {
         </div>
 
         {modal && <UpdateModal shop={modal} plans={plans} onClose={() => setModal(null)} onSaved={handleSaved} />}
+        {newSalon && <NewSalonModal plans={plans} onClose={() => setNewSalon(false)} onCreated={s => setShops(prev => [s, ...prev])} />}
+        {editPlan && <PlanEditModal plan={editPlan} onClose={() => setEditPlan(null)} onSaved={updated => setPlans(prev => prev.map(p => p.id === updated.id ? updated : p))} />}
       </div>
     </>
   )
