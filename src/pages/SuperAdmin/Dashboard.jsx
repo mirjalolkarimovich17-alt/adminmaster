@@ -1,15 +1,34 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../../config/supabaseClient'
-import { Card, Loader, Badge, SectionTitle, Btn, Input, Select } from '../../components/UiKit'
+import { Loader, SectionTitle, Btn, Select } from '../../components/UiKit'
+
+// ── Design tokens ─────────────────────────────────────────────
+const glass = {
+  background: 'rgba(255,255,255,0.04)',
+  backdropFilter: 'blur(20px) saturate(180%)',
+  WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+  border: '1px solid rgba(255,255,255,0.08)',
+  boxShadow: '0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)',
+}
+const glassGold = {
+  ...glass,
+  border: '1px solid rgba(212,175,55,0.3)',
+  boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(212,175,55,0.1), inset 0 1px 0 rgba(255,255,255,0.06)',
+}
 
 // ── Metric Card ───────────────────────────────────────────────
 function Metric({ label, value, sub }) {
   return (
-    <Card className="flex flex-col gap-1">
-      <p className="text-xs text-white/40 tracking-widest uppercase">{label}</p>
-      <p className="text-2xl font-bold text-gold">{value}</p>
-      {sub && <p className="text-xs text-white/30">{sub}</p>}
-    </Card>
+    <div className="rounded-2xl p-5 flex flex-col gap-2" style={glass}>
+      <p className="text-xs text-white/35 tracking-widest uppercase">{label}</p>
+      <p
+        className="text-3xl font-bold"
+        style={{ color: '#D4AF37', textShadow: '0 0 20px rgba(212,175,55,0.5), 0 0 40px rgba(212,175,55,0.2)' }}
+      >
+        {value}
+      </p>
+      {sub && <p className="text-xs text-white/25">{sub}</p>}
+    </div>
   )
 }
 
@@ -26,20 +45,22 @@ function PlanRow({ plan, onSave }) {
   }
 
   return (
-    <div className="flex items-center gap-3 py-3 border-b border-white/5 last:border-0">
+    <div className="flex items-center gap-3 py-3.5 border-b border-white/5 last:border-0">
       <span className="flex-1 text-sm text-white font-medium">{plan.name}</span>
-      <span className="text-xs text-white/30 w-24 text-right">
+      <span className="text-xs text-white/25 w-28 text-right hidden sm:block">
         SMS {plan.sms_limit} / Call {plan.call_limit}
       </span>
       <input
         value={price}
         onChange={e => setPrice(e.target.value)}
-        className="w-28 glass rounded-xl px-3 py-2 text-sm text-white text-right outline-none focus:ring-1 focus:ring-gold/40"
+        className="w-28 rounded-xl px-3 py-2 text-sm text-white text-right outline-none focus:ring-1 focus:ring-gold/40"
+        style={glass}
       />
-      <span className="text-xs text-white/30">UZS</span>
+      <span className="text-xs text-white/25">UZS</span>
       <button onClick={save} disabled={saving || Number(price) === plan.price}
-        className="px-3 py-2 rounded-xl text-xs font-semibold bg-gold/10 text-gold hover:bg-gold/20 disabled:opacity-30 transition-colors">
-        {saving ? '…' : 'Save'}
+        className="px-3 py-2 rounded-xl text-xs font-semibold transition-all disabled:opacity-25"
+        style={{ background: 'rgba(212,175,55,0.12)', color: '#D4AF37', border: '1px solid rgba(212,175,55,0.2)' }}>
+        {saving ? '…' : 'Saqlash'}
       </button>
     </div>
   )
@@ -67,32 +88,33 @@ function UpdateModal({ shop, plans, onClose, onSaved }) {
     onClose()
   }
 
+  const selectedPlan = plans.find(x => x.id === planId)
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-      <div className="glass gold-border rounded-3xl p-6 w-full max-w-sm flex flex-col gap-5">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)' }}>
+      <div className="w-full max-w-sm rounded-3xl p-6 flex flex-col gap-5" style={glassGold}>
         <div className="flex justify-between items-center">
           <h2 className="text-white font-semibold">{shop.name}</h2>
-          <button onClick={onClose} className="text-white/40 hover:text-white transition-colors">✕</button>
+          <button onClick={onClose} className="text-white/30 hover:text-white transition-colors text-lg leading-none">✕</button>
         </div>
 
         <Select label="Yangi tarif" value={planId} onChange={e => setPlanId(e.target.value)}>
           {plans.map(p => (
-            <option key={p.id} value={p.id}>
-              {p.name} — {p.price.toLocaleString()} UZS
-            </option>
+            <option key={p.id} value={p.id}>{p.name} — {p.price.toLocaleString()} UZS</option>
           ))}
         </Select>
 
-        {planId && (() => {
-          const p = plans.find(x => x.id === planId)
-          return p ? (
-            <div className="glass rounded-2xl p-3 flex flex-col gap-1.5 text-xs text-white/50">
-              <div className="flex justify-between"><span>SMS limiti</span><span className="text-white">{p.sms_limit}</span></div>
-              <div className="flex justify-between"><span>Qo'ng'iroq limiti</span><span className="text-white">{p.call_limit}</span></div>
-              <div className="flex justify-between"><span>Muddat</span><span className="text-white">+30 kun</span></div>
-            </div>
-          ) : null
-        })()}
+        {selectedPlan && (
+          <div className="rounded-2xl p-3 flex flex-col gap-2 text-xs" style={glass}>
+            {[['SMS limiti', selectedPlan.sms_limit], ["Qo'ng'iroq limiti", selectedPlan.call_limit], ['Muddat', '+30 kun']].map(([k, v]) => (
+              <div key={k} className="flex justify-between">
+                <span className="text-white/40">{k}</span>
+                <span className="text-white font-medium">{v}</span>
+              </div>
+            ))}
+          </div>
+        )}
 
         <Btn onClick={save} disabled={saving || !planId}>
           {saving ? 'Saqlanmoqda…' : 'Tasdiqlash va limitlarni yangilash'}
@@ -107,7 +129,7 @@ export default function SuperAdminDashboard() {
   const [shops, setShops] = useState([])
   const [plans, setPlans] = useState([])
   const [loading, setLoading] = useState(true)
-  const [modal, setModal] = useState(null) // shop object
+  const [modal, setModal] = useState(null)
 
   const load = useCallback(async () => {
     const [{ data: s }, { data: p }] = await Promise.all([
@@ -130,11 +152,8 @@ export default function SuperAdminDashboard() {
 
   function handleSaved(shopId, { plan, expires }) {
     setShops(prev => prev.map(s => s.id === shopId ? {
-      ...s,
-      subscription_plan_id: plan.id,
-      subscription_expires_at: expires,
-      sms_limit_remaining: plan.sms_limit,
-      call_limit_remaining: plan.call_limit,
+      ...s, subscription_plan_id: plan.id, subscription_expires_at: expires,
+      sms_limit_remaining: plan.sms_limit, call_limit_remaining: plan.call_limit,
       subscription_plans: plan,
     } : s))
   }
@@ -143,7 +162,6 @@ export default function SuperAdminDashboard() {
     setPlans(prev => prev.map(p => p.id === planId ? { ...p, price } : p))
   }
 
-  // Metrics
   const activeShops = shops.filter(s => s.is_active)
   const monthlyRevenue = activeShops.reduce((sum, s) => sum + (s.subscription_plans?.price ?? 0), 0)
   const totalSmsUsed = shops.reduce((sum, s) => {
@@ -164,70 +182,90 @@ export default function SuperAdminDashboard() {
   )
 
   return (
-    <div className="min-h-screen bg-obsidian-900 text-white">
-      {/* Ambient */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gold/3 rounded-full blur-3xl" />
+    <div className="min-h-screen text-white" style={{ background: '#080808' }}>
+
+      {/* Ambient orbs */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute -top-32 -right-32 w-[600px] h-[600px] rounded-full"
+          style={{ background: 'radial-gradient(circle, rgba(212,175,55,0.06) 0%, transparent 70%)' }} />
+        <div className="absolute -bottom-32 -left-32 w-[500px] h-[500px] rounded-full"
+          style={{ background: 'radial-gradient(circle, rgba(212,175,55,0.04) 0%, transparent 70%)' }} />
       </div>
 
       <div className="relative z-10 max-w-6xl mx-auto px-4 py-8">
 
         {/* Header */}
-        <div className="mb-8">
-          <p className="text-xs text-gold/60 tracking-widest uppercase mb-1">Platforma boshqaruvi</p>
-          <h1 className="text-3xl font-bold tracking-tight">SuperAdmin paneli</h1>
+        <div className="mb-10">
+          <p className="text-xs tracking-widest uppercase mb-2" style={{ color: 'rgba(212,175,55,0.5)' }}>
+            Platforma boshqaruvi
+          </p>
+          <h1 className="text-4xl font-bold tracking-tight"
+            style={{ textShadow: '0 0 60px rgba(212,175,55,0.15)' }}>
+            SuperAdmin paneli
+          </h1>
         </div>
 
-        {/* Metrikalar */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-10">
+        {/* Metrics */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
           <Metric label="Faol salonlar" value={activeShops.length} sub={`${shops.length} jami`} />
           <Metric label="Oylik tushum" value={`${(monthlyRevenue / 1_000_000).toFixed(2)}M`} sub="UZS" />
           <Metric label="SMS yuborildi" value={totalSmsUsed.toLocaleString()} sub="bu davr" />
           <Metric label="Qo'ng'iroqlar" value={totalCallsUsed.toLocaleString()} sub="bu davr" />
         </div>
 
-        {/* Tenant jadvali */}
+        {/* Tenant table */}
         <div className="mb-10">
           <SectionTitle>Salonlar boshqaruvi</SectionTitle>
-          <div className="glass rounded-2xl overflow-hidden">
+          <div className="rounded-2xl overflow-hidden" style={glass}>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-white/5 text-white/30 text-xs tracking-wider uppercase">
-                    {['Salon', 'Tarif', 'Muddat', 'SMS qoldi', 'Qo\'ng\'iroq qoldi', 'Holat', ''].map(h => (
-                      <th key={h} className="px-4 py-3 text-left font-medium whitespace-nowrap">{h}</th>
+                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                    {['Salon', 'Tarif', 'Muddat', 'SMS', "Qo'ng'iroq", 'Holat', ''].map(h => (
+                      <th key={h} className="px-4 py-3.5 text-left text-xs font-medium tracking-widest uppercase whitespace-nowrap"
+                        style={{ color: 'rgba(255,255,255,0.25)' }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {shops.map(s => (
-                    <tr key={s.id} className="border-b border-white/5 last:border-0 hover:bg-white/2 transition-colors">
-                      <td className="px-4 py-3 font-medium text-white whitespace-nowrap">{s.name}</td>
-                      <td className="px-4 py-3">
-                        <span className="text-xs px-2.5 py-1 rounded-full bg-gold/10 text-gold font-medium">
+                    <tr key={s.id} className="transition-colors"
+                      style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                      <td className="px-4 py-3.5 font-medium text-white whitespace-nowrap">{s.name}</td>
+                      <td className="px-4 py-3.5">
+                        <span className="text-xs px-2.5 py-1 rounded-full font-medium"
+                          style={{ background: 'rgba(212,175,55,0.1)', color: '#D4AF37', border: '1px solid rgba(212,175,55,0.2)' }}>
                           {s.subscription_plans?.name ?? '—'}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-white/50 whitespace-nowrap">{fmtDate(s.subscription_expires_at)}</td>
-                      <td className="px-4 py-3">
-                        <span className={`text-sm font-semibold ${s.sms_limit_remaining > 10 ? 'text-emerald-400' : 'text-red-400'}`}>
+                      <td className="px-4 py-3.5 whitespace-nowrap" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                        {fmtDate(s.subscription_expires_at)}
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <span className={`text-sm font-semibold ${(s.sms_limit_remaining ?? 0) > 10 ? 'text-emerald-400' : 'text-red-400'}`}>
                           {s.sms_limit_remaining ?? 0}
                         </span>
                       </td>
-                      <td className="px-4 py-3">
-                        <span className={`text-sm font-semibold ${s.call_limit_remaining > 5 ? 'text-emerald-400' : 'text-red-400'}`}>
+                      <td className="px-4 py-3.5">
+                        <span className={`text-sm font-semibold ${(s.call_limit_remaining ?? 0) > 5 ? 'text-emerald-400' : 'text-red-400'}`}>
                           {s.call_limit_remaining ?? 0}
                         </span>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3.5">
                         <button onClick={() => toggleActive(s.id, s.is_active)}
-                          className={`relative w-10 h-5 rounded-full transition-colors ${s.is_active ? 'bg-gold' : 'bg-white/10'}`}>
-                          <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${s.is_active ? 'left-5' : 'left-0.5'}`} />
+                          className="relative w-10 h-5 rounded-full transition-all duration-300"
+                          style={{ background: s.is_active ? '#D4AF37' : 'rgba(255,255,255,0.1)', boxShadow: s.is_active ? '0 0 12px rgba(212,175,55,0.4)' : 'none' }}>
+                          <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-md transition-all duration-300 ${s.is_active ? 'left-5' : 'left-0.5'}`} />
                         </button>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3.5">
                         <button onClick={() => setModal(s)}
-                          className="text-xs px-3 py-1.5 rounded-lg glass gold-border text-gold hover:bg-gold/10 transition-colors whitespace-nowrap">
+                          className="text-xs px-3 py-1.5 rounded-lg transition-all whitespace-nowrap"
+                          style={{ background: 'rgba(212,175,55,0.08)', color: '#D4AF37', border: '1px solid rgba(212,175,55,0.2)' }}
+                          onMouseEnter={e => e.currentTarget.style.background = 'rgba(212,175,55,0.15)'}
+                          onMouseLeave={e => e.currentTarget.style.background = 'rgba(212,175,55,0.08)'}>
                           Tarifni yangilash
                         </button>
                       </td>
@@ -239,25 +277,19 @@ export default function SuperAdminDashboard() {
           </div>
         </div>
 
-        {/* Tarif muharriri */}
+        {/* Plan editor */}
         <div>
           <SectionTitle>Tarif narxlari</SectionTitle>
-          <Card>
+          <div className="rounded-2xl p-4" style={glass}>
             {plans.map(p => (
               <PlanRow key={p.id} plan={p} onSave={handlePlanPriceSaved} />
             ))}
-          </Card>
+          </div>
         </div>
       </div>
 
-      {/* Modal */}
       {modal && (
-        <UpdateModal
-          shop={modal}
-          plans={plans}
-          onClose={() => setModal(null)}
-          onSaved={handleSaved}
-        />
+        <UpdateModal shop={modal} plans={plans} onClose={() => setModal(null)} onSaved={handleSaved} />
       )}
     </div>
   )
