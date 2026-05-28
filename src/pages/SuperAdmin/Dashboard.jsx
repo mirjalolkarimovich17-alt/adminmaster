@@ -186,67 +186,68 @@ function ModalBox({ title, onClose, children }) {
   )
 }
 
-// ── Modal ─────────────────────────────────────────────────────
-function UpdateModal({ shop, plans: parentPlans, onClose, onSaved }) {
-  // Self-load plans if parent hasn't fetched them yet
-  const [plans, setPlans] = useState(parentPlans)
-  const [planId, setPlanId] = useState(shop.subscription_plan_id ?? '')
+// ── SalonEditModal — hardcoded tiers, instant render, no async ─
+const TIERS = [
+  { key: 'start',     label: 'START',     price: 45000,   sms: 100,  calls: 50  },
+  { key: 'standard',  label: 'STANDARD',  price: 75000,   sms: 300,  calls: 150 },
+  { key: 'premium',   label: 'PREMIUM',   price: 120000,  sms: 700,  calls: 350 },
+  { key: 'vip_brand', label: 'VIP BRAND', price: 190000,  sms: 1500, calls: 750 },
+]
+
+function SalonEditModal({ shop, dbPlans, onClose, onSaved }) {
+  // Try to match current plan to a tier key; fall back to first tier
+  const currentTierKey = dbPlans.find(p => p.id === shop.subscription_plan_id)?.name?.toLowerCase().replace(' ', '_') ?? TIERS[0].key
+  const [tierKey, setTierKey] = useState(currentTierKey)
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState('')
 
-  useEffect(() => {
-    if (plans.length === 0) {
-      supabase.from('subscription_plans').select('*').order('price')
-        .then(({ data }) => {
-          if (data?.length) {
-            setPlans(data)
-            setPlanId(p => p || data[0].id)
-          }
-        })
-    } else if (!planId) {
-      setPlanId(plans[0].id)
-    }
-  }, [])
-
-  const sel = plans.find(x => x.id === planId)
+  // Find matching DB plan by name (case-insensitive), or use first DB plan
+  function resolveDbPlan() {
+    const tier = TIERS.find(t => t.key === tierKey)
+    return dbPlans.find(p => p.name?.toLowerCase().replace(/\s/g,'_') === tierKey)
+      ?? dbPlans.find(p => p.name?.toLowerCase().includes(tier?.label?.toLowerCase().split(' ')[0] ?? ''))
+      ?? dbPlans[0]
+      ?? null
+  }
 
   async function save() {
-    if (!sel || !shop.id) return
     setErr('')
     setSaving(true)
+    const tier = TIERS.find(t => t.key === tierKey)
+    const dbPlan = resolveDbPlan()
+    const expires = new Date(); expires.setDate(expires.getDate() + 30)
 
-    console.log('Saving tariff:', sel.name, '(', sel.id, ') for shop:', shop.id)
+    console.log('Saving tariff:', tier?.label, 'dbPlan:', dbPlan?.id, 'shop:', shop.id)
 
-    const expires = new Date()
-    expires.setDate(expires.getDate() + 30)
+    const payload = {
+      subscription_expires_at: expires.toISOString(),
+      sms_limit_remaining: tier?.sms ?? dbPlan?.sms_limit ?? 0,
+      call_limit_remaining: tier?.calls ?? dbPlan?.call_limit ?? 0,
+    }
+    if (dbPlan?.id) payload.subscription_plan_id = dbPlan.id
 
-    const { error } = await supabase
-      .from('barbershops')
-      .update({
-        subscription_plan_id:    sel.id,
-        subscription_expires_at: expires.toISOString(),
-        sms_limit_remaining:     sel.sms_limit,
-        call_limit_remaining:    sel.call_limit,
-      })
-      .eq('id', shop.id)
-
+    const { error } = await supabase.from('barbershops').update(payload).eq('id', shop.id)
     setSaving(false)
 
     if (error) {
-      console.error('[UpdateModal error]', error)
+      console.error('[SalonEditModal]', error)
       setErr(
-        error.message?.toLowerCase().includes('row-level security') || error.message?.toLowerCase().includes('policy')
+        error.message?.toLowerCase().includes('policy') || error.message?.toLowerCase().includes('rls')
           ? '❌ Kirish taqiqlangan (RLS). Supabase policy tekshiring.'
           : `❌ Xatolik: ${error.message}`
       )
       return
     }
 
-    console.log('✅ Tarif muvaffaqiyatli yangilandi:', shop.name, '→', sel.name)
-    onSaved(shop.id, { plan: sel, expires: expires.toISOString() })
+    alert('✅ Tarif muvaffaqiyatli yangilandi!')
+    onSaved(shop.id, {
+      plan: dbPlan ?? { id: tierKey, name: tier?.label, price: tier?.price, sms_limit: tier?.sms, call_limit: tier?.calls },
+      expires: expires.toISOString(),
+    })
     onClose()
   }
 
+  const sel = TIERS.find(t => t.key === tierKey)
   const selectStyle = {
     ...G.card, width: '100%', padding: '12px 14px', fontSize: 13,
     color: '#fff', outline: 'none', borderRadius: 14, boxSizing: 'border-box',
@@ -254,32 +255,22 @@ function UpdateModal({ shop, plans: parentPlans, onClose, onSaved }) {
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
-      background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)' }}>
-      <div style={{ ...G.cardGold, padding: 28, width: '100%', maxWidth: 380, display: 'flex', flexDirection: 'column', gap: 20 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 style={{ margin: 0, fontSize: 16, color: '#fff', fontWeight: 600 }}>{shop.name}</h2>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>✕</button>
-        </div>
-
+    <Overlay>
+      <ModalBox title={shop.name} onClose={onClose}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <label style={{ fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)' }}>Yangi tarif</label>
-          {plans.length === 0 ? (
-            <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>Yuklanmoqda…</p>
-          ) : (
-            <select value={planId} onChange={e => setPlanId(e.target.value)} style={selectStyle}>
-              {plans.map(p => (
-                <option key={p.id} value={p.id} style={{ background: '#0f0a1e', color: '#fff' }}>
-                  {p.name} — {Number(p.price).toLocaleString()} UZS
-                </option>
-              ))}
-            </select>
-          )}
+          <label style={LBL}>Yangi tarif</label>
+          <select value={tierKey} onChange={e => setTierKey(e.target.value)} style={selectStyle}>
+            {TIERS.map(t => (
+              <option key={t.key} value={t.key} style={{ background: '#0f0a1e', color: '#fff' }}>
+                {t.label} — {t.price.toLocaleString()} UZS
+              </option>
+            ))}
+          </select>
         </div>
 
         {sel && (
           <div style={{ ...G.card, padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {[['SMS limiti', sel.sms_limit], ["Qo'ng'iroq limiti", sel.call_limit], ['Muddat', '+30 kun']].map(([k, v]) => (
+            {[['SMS limiti', sel.sms], ["Qo'ng'iroq limiti", sel.calls], ['Muddat', '+30 kun']].map(([k, v]) => (
               <div key={k} style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>{k}</span>
                 <span style={{ fontSize: 12, color: '#fff', fontWeight: 500 }}>{v}</span>
@@ -294,13 +285,63 @@ function UpdateModal({ shop, plans: parentPlans, onClose, onSaved }) {
           </div>
         )}
 
-        <Btn onClick={save} disabled={saving || !sel}>
+        <Btn onClick={save} disabled={saving}>
           {saving ? 'Saqlanmoqda…' : 'Tasdiqlash va limitlarni yangilash'}
         </Btn>
-      </div>
-    </div>
+      </ModalBox>
+    </Overlay>
   )
 }
+
+// ── GlobalPriceModal — edit display price on plan cards ───────
+function GlobalPriceModal({ plan, onClose, onSaved }) {
+  const [price, setPrice] = useState(plan.price ?? '')
+  const [saving, setSaving] = useState(false)
+  const [err, setErr] = useState('')
+
+  // Find matching DB plan by name to update subscription_plans table
+  async function save() {
+    setErr('')
+    setSaving(true)
+    // Try to update subscription_plans if a real DB id exists
+    if (plan.dbId) {
+      const { error } = await supabase.from('subscription_plans').update({ price: Number(price) }).eq('id', plan.dbId)
+      if (error) {
+        setErr(`❌ Xatolik: ${error.message}`)
+        setSaving(false)
+        return
+      }
+    }
+    alert('✅ Narx muvaffaqiyatli yangilandi!')
+    onSaved({ ...plan, price: String(price) })
+    setSaving(false)
+    onClose()
+  }
+
+  const inp = { ...G.card, width: '100%', padding: '12px 14px', fontSize: 13, color: '#fff', outline: 'none', borderRadius: 14, boxSizing: 'border-box' }
+
+  return (
+    <Overlay>
+      <ModalBox title={`Narxni tahrirlash — ${plan.name}`} onClose={onClose}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <label style={LBL}>Yangi narx (UZS / oy)</label>
+          <input style={inp} type="number" value={price} onChange={e => setPrice(e.target.value)} placeholder="200000" />
+        </div>
+        {err && (
+          <div style={{ padding: '10px 14px', borderRadius: 12, background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)', fontSize: 12, color: '#fca5a5' }}>
+            {err}
+          </div>
+        )}
+        <Btn onClick={save} disabled={saving || !price}>
+          {saving ? 'Saqlanmoqda…' : 'Saqlash'}
+        </Btn>
+      </ModalBox>
+    </Overlay>
+  )
+}
+
+// ── (legacy UpdateModal kept as alias) ────────────────────────
+const UpdateModal = SalonEditModal
 
 // ── Main ──────────────────────────────────────────────────────
 export default function SuperAdminDashboard() {
@@ -534,7 +575,10 @@ export default function SuperAdminDashboard() {
                   </div>
 
                   <button
-                    onClick={() => setEditPlan(plan)}
+                    onClick={() => {
+                      const dbPlan = plans.find(p => p.name?.toUpperCase().replace(/\s/g,'_') === plan.name.replace(/\s/g,'_'))
+                      setEditPlan({ ...plan, dbId: dbPlan?.id ?? null })
+                    }}
                     style={{ marginTop: 'auto', padding: '12px', borderRadius: 14, fontSize: 12, fontWeight: 600, cursor: 'pointer',
                       letterSpacing: '0.06em', transition: 'all .25s',
                       background: `${plan.accent}12`, color: plan.accent,
@@ -559,9 +603,12 @@ export default function SuperAdminDashboard() {
           </div>
         </div>
 
-        {modal && <UpdateModal shop={modal} plans={plans} onClose={() => setModal(null)} onSaved={handleSaved} />}
+        {modal && <SalonEditModal shop={modal} dbPlans={plans} onClose={() => setModal(null)} onSaved={handleSaved} />}
         {newSalon && <NewSalonModal plans={plans} onClose={() => setNewSalon(false)} onCreated={s => setShops(prev => [s, ...prev])} />}
-        {editPlan && <PlanEditModal plan={editPlan} onClose={() => setEditPlan(null)} onSaved={updated => setPlans(prev => prev.map(p => p.id === updated.id ? updated : p))} />}
+        {editPlan && <GlobalPriceModal plan={editPlan} onClose={() => setEditPlan(null)} onSaved={updated => {
+          setEditPlan(null)
+          setPlans(prev => prev.map(p => p.name?.toLowerCase() === updated.name?.toLowerCase() ? { ...p, price: Number(updated.price) } : p))
+        }} />}
       </div>
     </>
   )
