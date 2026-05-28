@@ -66,10 +66,17 @@ const badgeColors = {
   cancelled: 'bg-white/10 text-white/40',
   pending: 'bg-yellow-500/20 text-yellow-300',
 }
+const statusLabels = {
+  booked: 'Navbatda',
+  completed: 'Bajarildi',
+  no_show: 'Kelmadi',
+  cancelled: 'Bekor qilindi',
+  pending: 'Kutilmoqda',
+}
 export function Badge({ status }) {
   return (
     <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${badgeColors[status] ?? 'bg-white/10 text-white/50'}`}>
-      {status?.replace('_', ' ')}
+      {statusLabels[status] ?? status}
     </span>
   )
 }

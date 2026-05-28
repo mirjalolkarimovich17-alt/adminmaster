@@ -75,7 +75,7 @@ function UpdateModal({ shop, plans, onClose, onSaved }) {
           <button onClick={onClose} className="text-white/40 hover:text-white transition-colors">✕</button>
         </div>
 
-        <Select label="New Plan" value={planId} onChange={e => setPlanId(e.target.value)}>
+        <Select label="Yangi tarif" value={planId} onChange={e => setPlanId(e.target.value)}>
           {plans.map(p => (
             <option key={p.id} value={p.id}>
               {p.name} — {p.price.toLocaleString()} UZS
@@ -87,15 +87,15 @@ function UpdateModal({ shop, plans, onClose, onSaved }) {
           const p = plans.find(x => x.id === planId)
           return p ? (
             <div className="glass rounded-2xl p-3 flex flex-col gap-1.5 text-xs text-white/50">
-              <div className="flex justify-between"><span>SMS limit</span><span className="text-white">{p.sms_limit}</span></div>
-              <div className="flex justify-between"><span>Call limit</span><span className="text-white">{p.call_limit}</span></div>
-              <div className="flex justify-between"><span>Expires</span><span className="text-white">+30 days</span></div>
+              <div className="flex justify-between"><span>SMS limiti</span><span className="text-white">{p.sms_limit}</span></div>
+              <div className="flex justify-between"><span>Qo'ng'iroq limiti</span><span className="text-white">{p.call_limit}</span></div>
+              <div className="flex justify-between"><span>Muddat</span><span className="text-white">+30 kun</span></div>
             </div>
           ) : null
         })()}
 
         <Btn onClick={save} disabled={saving || !planId}>
-          {saving ? 'Saving…' : 'Confirm & Reset Limits'}
+          {saving ? 'Saqlanmoqda…' : 'Tasdiqlash va limitlarni yangilash'}
         </Btn>
       </div>
     </div>
@@ -174,27 +174,27 @@ export default function SuperAdminDashboard() {
 
         {/* Header */}
         <div className="mb-8">
-          <p className="text-xs text-gold/60 tracking-widest uppercase mb-1">Platform Control</p>
-          <h1 className="text-3xl font-bold tracking-tight">SuperAdmin Dashboard</h1>
+          <p className="text-xs text-gold/60 tracking-widest uppercase mb-1">Platforma boshqaruvi</p>
+          <h1 className="text-3xl font-bold tracking-tight">SuperAdmin paneli</h1>
         </div>
 
-        {/* Metrics */}
+        {/* Metrikalar */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-10">
-          <Metric label="Active Salons" value={activeShops.length} sub={`${shops.length} total`} />
-          <Metric label="Monthly Revenue" value={`${(monthlyRevenue / 1_000_000).toFixed(2)}M`} sub="UZS" />
-          <Metric label="SMS Sent" value={totalSmsUsed.toLocaleString()} sub="this cycle" />
-          <Metric label="Calls Made" value={totalCallsUsed.toLocaleString()} sub="this cycle" />
+          <Metric label="Faol salonlar" value={activeShops.length} sub={`${shops.length} jami`} />
+          <Metric label="Oylik tushum" value={`${(monthlyRevenue / 1_000_000).toFixed(2)}M`} sub="UZS" />
+          <Metric label="SMS yuborildi" value={totalSmsUsed.toLocaleString()} sub="bu davr" />
+          <Metric label="Qo'ng'iroqlar" value={totalCallsUsed.toLocaleString()} sub="bu davr" />
         </div>
 
-        {/* Tenant Table */}
+        {/* Tenant jadvali */}
         <div className="mb-10">
-          <SectionTitle>Tenant Management</SectionTitle>
+          <SectionTitle>Salonlar boshqaruvi</SectionTitle>
           <div className="glass rounded-2xl overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-white/5 text-white/30 text-xs tracking-wider uppercase">
-                    {['Salon', 'Plan', 'Expires', 'SMS left', 'Calls left', 'Status', ''].map(h => (
+                    {['Salon', 'Tarif', 'Muddat', 'SMS qoldi', 'Qo\'ng\'iroq qoldi', 'Holat', ''].map(h => (
                       <th key={h} className="px-4 py-3 text-left font-medium whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
@@ -228,7 +228,7 @@ export default function SuperAdminDashboard() {
                       <td className="px-4 py-3">
                         <button onClick={() => setModal(s)}
                           className="text-xs px-3 py-1.5 rounded-lg glass gold-border text-gold hover:bg-gold/10 transition-colors whitespace-nowrap">
-                          Update Plan
+                          Tarifni yangilash
                         </button>
                       </td>
                     </tr>
@@ -239,9 +239,9 @@ export default function SuperAdminDashboard() {
           </div>
         </div>
 
-        {/* Plan Editor */}
+        {/* Tarif muharriri */}
         <div>
-          <SectionTitle>SaaS Plan Pricing</SectionTitle>
+          <SectionTitle>Tarif narxlari</SectionTitle>
           <Card>
             {plans.map(p => (
               <PlanRow key={p.id} plan={p} onSave={handlePlanPriceSaved} />

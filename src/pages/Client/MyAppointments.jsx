@@ -46,22 +46,22 @@ export default function MyAppointments() {
   }
 
   if (loading) return (
-    <Layout title="My Appointments" back={() => navigate('/client')}>
+    <Layout title="Navbatlarim" back={() => navigate('/client')}>
       <div className="flex justify-center mt-20"><Loader /></div>
     </Layout>
   )
 
   if (!tgId) return (
-    <Layout title="My Appointments" back={() => navigate('/client')}>
-      <p className="text-center text-white/30 text-sm mt-20">Open via Telegram to view appointments.</p>
+    <Layout title="Navbatlarim" back={() => navigate('/client')}>
+      <p className="text-center text-white/30 text-sm mt-20">Navbatlarni ko'rish uchun Telegram orqali oching.</p>
     </Layout>
   )
 
   return (
-    <Layout title="My Appointments" back={() => navigate('/client')}>
+    <Layout title="Navbatlarim" back={() => navigate('/client')}>
       {upcoming.length > 0 && (
         <div className="mb-6">
-          <SectionTitle>Upcoming</SectionTitle>
+          <SectionTitle>Kutilayotgan</SectionTitle>
           <div className="flex flex-col gap-3">
             {upcoming.map(a => <AppointmentCard key={a.id} a={a} />)}
           </div>
@@ -70,7 +70,7 @@ export default function MyAppointments() {
 
       {past.length > 0 && (
         <div className="mb-6">
-          <SectionTitle>Past</SectionTitle>
+          <SectionTitle>O'tgan</SectionTitle>
           <div className="flex flex-col gap-3">
             {past.map(a => <AppointmentCard key={a.id} a={a} />)}
           </div>
@@ -79,8 +79,8 @@ export default function MyAppointments() {
 
       {appts.length === 0 && (
         <div className="flex flex-col items-center gap-4 mt-20">
-          <p className="text-white/30 text-sm">No appointments yet</p>
-          <Btn onClick={() => navigate('/client/booking')}>Book Now</Btn>
+          <p className="text-white/30 text-sm">Hali navbat yo'q</p>
+          <Btn onClick={() => navigate('/client/booking')}>Navbat olish</Btn>
         </div>
       )}
     </Layout>

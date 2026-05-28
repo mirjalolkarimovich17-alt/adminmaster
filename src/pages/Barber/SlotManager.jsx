@@ -49,7 +49,7 @@ export default function SlotManager() {
     setError('')
     const start = new Date(`${form.date}T${form.start}:00`)
     const end = new Date(`${form.date}T${form.end}:00`)
-    if (end <= start) { setError('End time must be after start time'); setSubmitting(false); return }
+    if (end <= start) { setError('Tugash vaqti boshlanish vaqtidan keyin bo\'lishi kerak'); setSubmitting(false); return }
 
     const { data, error: err } = await supabase.from('blocked_slots').insert({
       tenant_id: TENANT_ID,
@@ -73,41 +73,41 @@ export default function SlotManager() {
   const fmt = (iso) => new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 
   if (loading) return (
-    <Layout title="Slot Manager" back={() => navigate('/barber')}>
+    <Layout title="Vaqt boshqaruvi" back={() => navigate('/barber')}>
       <div className="flex justify-center mt-20"><Loader /></div>
     </Layout>
   )
 
   return (
-    <Layout title="Slot Manager" back={() => navigate('/barber')}>
+    <Layout title="Vaqt boshqaruvi" back={() => navigate('/barber')}>
       <form onSubmit={addBlock} className="flex flex-col gap-4 mb-8">
-        <SectionTitle>Block a Time</SectionTitle>
+        <SectionTitle>Vaqtni bloklash</SectionTitle>
 
-        <Select label="Barber" value={form.barber_id} onChange={e => setForm(f => ({ ...f, barber_id: e.target.value }))}>
+        <Select label="Usta" value={form.barber_id} onChange={e => setForm(f => ({ ...f, barber_id: e.target.value }))}>
           {barbers.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
         </Select>
 
-        <Input label="Date" type="date" value={form.date} min={today}
+        <Input label="Sana" type="date" value={form.date} min={today}
           onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
 
         <div className="grid grid-cols-2 gap-3">
-          <Input label="From" type="time" value={form.start}
+          <Input label="Boshlanish" type="time" value={form.start}
             onChange={e => setForm(f => ({ ...f, start: e.target.value }))} />
-          <Input label="To" type="time" value={form.end}
+          <Input label="Tugash" type="time" value={form.end}
             onChange={e => setForm(f => ({ ...f, end: e.target.value }))} />
         </div>
 
-        <Input label="Reason (optional)" placeholder="Lunch, break, emergency…" value={form.reason}
+        <Input label="Sabab (ixtiyoriy)" placeholder="Tushlik, tanaffus, favqulodda…" value={form.reason}
           onChange={e => setForm(f => ({ ...f, reason: e.target.value }))} />
 
         {error && <p className="text-red-400 text-xs">{error}</p>}
-        <Btn type="submit" disabled={submitting}>{submitting ? 'Blocking…' : 'Block Slot'}</Btn>
+        <Btn type="submit" disabled={submitting}>{submitting ? 'Saqlanmoqda…' : 'Vaqtni bloklash'}</Btn>
       </form>
 
-      {/* Existing blocks */}
+      {/* Mavjud bloklar */}
       {blocks.length > 0 && (
         <>
-          <SectionTitle>Blocked — {new Date(form.date).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}</SectionTitle>
+          <SectionTitle>Bloklangan — {new Date(form.date).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}</SectionTitle>
           <div className="flex flex-col gap-3">
             {blocks.map(b => (
               <Card key={b.id} className="flex items-center justify-between">

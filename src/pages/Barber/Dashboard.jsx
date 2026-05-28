@@ -44,22 +44,22 @@ export default function Dashboard() {
   filtered.forEach(a => { if (counts[a.appointment_status] !== undefined) counts[a.appointment_status]++ })
 
   if (loading) return (
-    <Layout title="Dashboard">
+    <Layout title="Boshqaruv paneli">
       <div className="flex justify-center mt-20"><Loader /></div>
     </Layout>
   )
 
   return (
-    <Layout title="Dashboard">
-      {/* Quick actions */}
+    <Layout title="Boshqaruv paneli">
+      {/* Tezkor amallar */}
       <div className="flex gap-2 mb-6">
-        <Btn onClick={() => navigate('/barber/booking')} className="flex-1">+ Book</Btn>
-        <Btn variant="ghost" onClick={() => navigate('/barber/slots')} className="flex-1">Slots</Btn>
+        <Btn onClick={() => navigate('/barber/booking')} className="flex-1">+ Navbat</Btn>
+        <Btn variant="ghost" onClick={() => navigate('/barber/slots')} className="flex-1">Vaqtlar</Btn>
       </div>
 
-      {/* Stats */}
+      {/* Statistika */}
       <div className="grid grid-cols-3 gap-2 mb-6">
-        {[['Booked', counts.booked, 'text-blue-300'], ['Done', counts.completed, 'text-emerald-300'], ['No-show', counts.no_show, 'text-red-300']].map(([l, v, c]) => (
+        {[['Navbat', counts.booked, 'text-blue-300'], ['Bajarildi', counts.completed, 'text-emerald-300'], ['Kelmadi', counts.no_show, 'text-red-300']].map(([l, v, c]) => (
           <Card key={l} className="flex flex-col items-center py-3">
             <span className={`text-2xl font-bold ${c}`}>{v}</span>
             <span className="text-white/40 text-xs mt-0.5">{l}</span>
@@ -80,11 +80,11 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Timeline */}
-      <SectionTitle>Today — {today.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}</SectionTitle>
+      {/* Kun jadvali */}
+      <SectionTitle>Bugun — {today.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}</SectionTitle>
 
       {filtered.length === 0 ? (
-        <p className="text-center text-white/30 text-sm py-10">No appointments today</p>
+        <p className="text-center text-white/30 text-sm py-10">Bugun navbat yo'q</p>
       ) : (
         <div className="flex flex-col gap-3">
           {filtered.map(a => (
@@ -103,11 +103,11 @@ export default function Dashboard() {
                 <div className="flex gap-2">
                   <button onClick={() => updateStatus(a.id, 'completed')}
                     className="flex-1 py-2 rounded-xl text-xs font-medium bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 transition-colors">
-                    ✓ Done
+                    ✓ Bajarildi
                   </button>
                   <button onClick={() => updateStatus(a.id, 'no_show')}
                     className="flex-1 py-2 rounded-xl text-xs font-medium bg-red-500/20 text-red-300 hover:bg-red-500/30 transition-colors">
-                    ✗ No-show
+                    ✗ Kelmadi
                   </button>
                 </div>
               )}

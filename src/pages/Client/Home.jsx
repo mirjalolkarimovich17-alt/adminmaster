@@ -39,8 +39,8 @@ export default function Home() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z" />
           </svg>
         </div>
-        <h1 className="text-2xl font-bold tracking-tight text-white">{shop?.name ?? 'Barbershop'}</h1>
-        <p className="text-white/40 text-sm">Premium grooming experience</p>
+        <h1 className="text-2xl font-bold tracking-tight text-white">{shop?.name ?? 'Sartaroshxona'}</h1>
+        <p className="text-white/40 text-sm">Premium sartaroshlik xizmati</p>
         {shop?.location_link && (
           <a href={shop.location_link} target="_blank" rel="noreferrer"
             className="flex items-center gap-1.5 text-gold text-xs hover:text-gold-light transition-colors">
@@ -48,21 +48,21 @@ export default function Home() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
-            View on map
+            Xaritada ko'rish
           </a>
         )}
       </div>
 
       {/* CTA */}
       <div className="flex flex-col gap-3 mb-8">
-        <Btn onClick={() => navigate('/client/booking')}>Book Appointment</Btn>
-        <Btn variant="ghost" onClick={() => navigate('/client/appointments')}>My Appointments</Btn>
+        <Btn onClick={() => navigate('/client/booking')}>Navbat olish</Btn>
+        <Btn variant="ghost" onClick={() => navigate('/client/appointments')}>Navbatlarim</Btn>
       </div>
 
-      {/* Barbers */}
+      {/* Ustalar */}
       {barbers.length > 0 && (
         <>
-          <SectionTitle>Our Barbers</SectionTitle>
+          <SectionTitle>Bizning ustalar</SectionTitle>
           <div className="flex flex-col gap-3">
             {barbers.map(b => (
               <Card key={b.id} className="flex items-center gap-4">

@@ -130,58 +130,58 @@ export default function ManualBooking() {
   const fmt = (d) => d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 
   if (loading) return (
-    <Layout title="Manual Booking">
+    <Layout title="Qo'lda navbat">
       <div className="flex justify-center mt-20"><Loader /></div>
     </Layout>
   )
 
   if (success) return (
-    <Layout title="Manual Booking">
+    <Layout title="Qo'lda navbat">
       <div className="flex flex-col items-center gap-4 mt-20">
         <div className="w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center">
           <svg className="w-8 h-8 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <p className="text-white/70 text-sm">Appointment booked!</p>
+        <p className="text-white/70 text-sm">Navbat muvaffaqiyatli yozildi!</p>
       </div>
     </Layout>
   )
 
   return (
-    <Layout title="Manual Booking" back={() => navigate('/barber')}>
+    <Layout title="Qo'lda navbat" back={() => navigate('/barber')}>
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
 
-        {/* Barber */}
-        <Select label="Barber" value={form.barber_id} onChange={e => setForm(f => ({ ...f, barber_id: e.target.value }))}>
+        {/* Usta */}
+        <Select label="Usta" value={form.barber_id} onChange={e => setForm(f => ({ ...f, barber_id: e.target.value }))}>
           {barbers.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
         </Select>
 
-        {/* Client info */}
-        <SectionTitle>Client Info</SectionTitle>
+        {/* Mijoz ma'lumotlari */}
+        <SectionTitle>Mijoz ma'lumotlari</SectionTitle>
         <div className="flex flex-col gap-3">
-          <Input label="Name" placeholder="Client name" required value={form.customer_name}
+          <Input label="Ism" placeholder="Mijoz ismi" required value={form.customer_name}
             onChange={e => setForm(f => ({ ...f, customer_name: e.target.value }))} />
-          <Input label="Phone" placeholder="+998 XX XXX XX XX" required type="tel" value={form.customer_phone}
+          <Input label="Telefon" placeholder="+998 XX XXX XX XX" required type="tel" value={form.customer_phone}
             onChange={e => setForm(f => ({ ...f, customer_phone: e.target.value }))} />
         </div>
 
-        {/* Service */}
-        <SectionTitle>Service</SectionTitle>
+        {/* Xizmat */}
+        <SectionTitle>Xizmat</SectionTitle>
         <Select value={form.service_id} onChange={e => setForm(f => ({ ...f, service_id: e.target.value }))}>
           {services.map(s => (
-            <option key={s.id} value={s.id}>{s.name} — {s.duration_minutes} min — {s.price.toLocaleString()} UZS</option>
+            <option key={s.id} value={s.id}>{s.name} — {s.duration_minutes} daqiqa — {s.price.toLocaleString()} UZS</option>
           ))}
         </Select>
 
-        {/* Date */}
-        <Input label="Date" type="date" value={form.date} min={today}
+        {/* Sana */}
+        <Input label="Sana" type="date" value={form.date} min={today}
           onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
 
-        {/* Time slots */}
+        {/* Vaqt slotlari */}
         {slots.length > 0 && (
           <>
-            <SectionTitle>Time Slot</SectionTitle>
+            <SectionTitle>Bo'sh vaqt</SectionTitle>
             <div className="grid grid-cols-4 gap-2">
               {slots.map((s, i) => {
                 const selected = form.slot?.getTime() === s.time.getTime()
@@ -200,10 +200,10 @@ export default function ManualBooking() {
           </>
         )}
 
-        {/* End time preview */}
+        {/* Davomiylik ko'rinishi */}
         {form.slot && selectedService && (
           <Card className="flex justify-between items-center">
-            <span className="text-white/50 text-sm">Duration</span>
+            <span className="text-white/50 text-sm">Davomiylik</span>
             <span className="text-gold text-sm font-semibold">
               {fmt(form.slot)} → {fmt(new Date(form.slot.getTime() + selectedService.duration_minutes * 60000))}
             </span>
@@ -213,7 +213,7 @@ export default function ManualBooking() {
         {error && <p className="text-red-400 text-xs text-center">{error}</p>}
 
         <Btn type="submit" disabled={!form.slot || submitting}>
-          {submitting ? 'Booking…' : 'Confirm Booking'}
+          {submitting ? 'Saqlanmoqda…' : 'Navbatni tasdiqlash'}
         </Btn>
       </form>
     </Layout>

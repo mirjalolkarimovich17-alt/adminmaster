@@ -4,7 +4,7 @@ import { supabase, TENANT_ID } from '../../config/supabaseClient'
 import Layout from '../../components/Layout'
 import { Btn, Card, Loader, SectionTitle, Input } from '../../components/UiKit'
 
-const STEPS = ['Service', 'Barber', 'Date & Time', 'Confirm']
+const STEPS = ['Xizmat', 'Usta', 'Sana va vaqt', 'Tasdiqlash']
 
 function buildSlots(date, startTime, endTime, bookedRanges, durationMin) {
   const slots = []
@@ -142,27 +142,27 @@ export default function Booking() {
   ]
 
   if (loading) return (
-    <Layout title="Book Appointment">
+    <Layout title="Navbat olish">
       <div className="flex justify-center mt-20"><Loader /></div>
     </Layout>
   )
 
   if (success) return (
-    <Layout title="Book Appointment">
+    <Layout title="Navbat olish">
       <div className="flex flex-col items-center gap-4 mt-20">
         <div className="w-20 h-20 rounded-full bg-gold/10 border border-gold/30 flex items-center justify-center">
           <svg className="w-10 h-10 text-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <p className="text-white font-semibold text-lg">Booked!</p>
-        <p className="text-white/40 text-sm">{fmtDate(sel.date)} at {fmt(sel.slot)}</p>
+        <p className="text-white font-semibold text-lg">Navbat olindi!</p>
+        <p className="text-white/40 text-sm">{fmtDate(sel.date)}, soat {fmt(sel.slot)}</p>
       </div>
     </Layout>
   )
 
   return (
-    <Layout title="Book Appointment" back={step > 0 ? () => setStep(s => s - 1) : () => navigate('/client')}>
+    <Layout title="Navbat olish" back={step > 0 ? () => setStep(s => s - 1) : () => navigate('/client')}>
       {/* Step indicator */}
       <div className="flex gap-1.5 mb-6">
         {STEPS.map((s, i) => (
@@ -171,10 +171,10 @@ export default function Booking() {
       </div>
       <p className="text-xs text-white/40 mb-4 tracking-widest uppercase">{STEPS[step]}</p>
 
-      {/* Step 0 — Service */}
+      {/* Step 0 — Xizmat */}
       {step === 0 && (
         <div className="flex flex-col gap-3">
-          <SectionTitle>Choose a Service</SectionTitle>
+          <SectionTitle>Xizmat tanlang</SectionTitle>
           {services.map(s => (
             <div key={s.id} onClick={() => setSel(f => ({ ...f, service: s }))}
               className={`glass rounded-2xl p-4 cursor-pointer transition-all active:scale-[0.98]
@@ -182,7 +182,7 @@ export default function Booking() {
               <div className="flex justify-between items-center">
                 <div>
                   <p className="text-white font-medium text-sm">{s.name}</p>
-                  <p className="text-white/40 text-xs mt-0.5">{s.duration_minutes} min</p>
+                  <p className="text-white/40 text-xs mt-0.5">{s.duration_minutes} daqiqa</p>
                 </div>
                 <p className="text-gold font-semibold text-sm">{s.price.toLocaleString()} <span className="text-xs text-white/30">UZS</span></p>
               </div>
@@ -191,10 +191,10 @@ export default function Booking() {
         </div>
       )}
 
-      {/* Step 1 — Barber */}
+      {/* Step 1 — Usta */}
       {step === 1 && (
         <div className="flex flex-col gap-3">
-          <SectionTitle>Choose a Barber</SectionTitle>
+          <SectionTitle>Usta tanlang</SectionTitle>
           {barbers.map(b => (
             <div key={b.id} onClick={() => setSel(f => ({ ...f, barber: b }))}
               className={`glass rounded-2xl p-4 cursor-pointer transition-all active:scale-[0.98] flex items-center gap-4
@@ -219,17 +219,17 @@ export default function Booking() {
         </div>
       )}
 
-      {/* Step 2 — Date & Time */}
+      {/* Step 2 — Sana va vaqt */}
       {step === 2 && (
         <div className="flex flex-col gap-4">
-          <Input label="Date" type="date" value={sel.date} min={today}
+          <Input label="Sana" type="date" value={sel.date} min={today}
             onChange={e => setSel(f => ({ ...f, date: e.target.value, slot: null }))} />
 
           {loadingSlots ? (
             <div className="flex justify-center py-8"><Loader /></div>
           ) : (
             <>
-              <SectionTitle>Available Times</SectionTitle>
+              <SectionTitle>Bo'sh vaqtlar</SectionTitle>
               <div className="grid grid-cols-4 gap-2">
                 {slots.map((s, i) => {
                   const selected = sel.slot?.getTime() === s.time.getTime()
@@ -246,30 +246,30 @@ export default function Booking() {
                 })}
               </div>
               {slots.length === 0 && (
-                <p className="text-center text-white/30 text-sm py-6">No available slots for this day</p>
+                <p className="text-center text-white/30 text-sm py-6">Bu kunda bo'sh vaqt yo'q</p>
               )}
             </>
           )}
         </div>
       )}
 
-      {/* Step 3 — Confirm */}
+      {/* Step 3 — Tasdiqlash */}
       {step === 3 && (
         <div className="flex flex-col gap-4">
-          <SectionTitle>Your Details</SectionTitle>
-          <Input label="Name" placeholder="Your name" required value={sel.name}
+          <SectionTitle>Ma'lumotlaringiz</SectionTitle>
+          <Input label="Ism" placeholder="Ismingiz" required value={sel.name}
             onChange={e => setSel(f => ({ ...f, name: e.target.value }))} />
-          <Input label="Phone" placeholder="+998 XX XXX XX XX" type="tel" required value={sel.phone}
+          <Input label="Telefon" placeholder="+998 XX XXX XX XX" type="tel" required value={sel.phone}
             onChange={e => setSel(f => ({ ...f, phone: e.target.value }))} />
 
-          <SectionTitle>Summary</SectionTitle>
+          <SectionTitle>Xulosa</SectionTitle>
           <div className="glass rounded-2xl p-4 flex flex-col gap-3">
             {[
-              ['Service', sel.service?.name],
-              ['Barber', sel.barber?.name],
-              ['Date', fmtDate(sel.date)],
-              ['Time', sel.slot ? `${fmt(sel.slot)} → ${fmt(new Date(sel.slot.getTime() + sel.service.duration_minutes * 60000))}` : '—'],
-              ['Price', sel.service ? `${sel.service.price.toLocaleString()} UZS` : '—'],
+              ['Xizmat', sel.service?.name],
+              ['Usta', sel.barber?.name],
+              ['Sana', fmtDate(sel.date)],
+              ['Vaqt', sel.slot ? `${fmt(sel.slot)} → ${fmt(new Date(sel.slot.getTime() + sel.service.duration_minutes * 60000))}` : '—'],
+              ['Narx', sel.service ? `${sel.service.price.toLocaleString()} UZS` : '—'],
             ].map(([k, v]) => (
               <div key={k} className="flex justify-between items-center">
                 <span className="text-white/40 text-sm">{k}</span>
@@ -282,15 +282,15 @@ export default function Booking() {
         </div>
       )}
 
-      {/* Navigation */}
+      {/* Navigatsiya */}
       <div className="mt-6">
         {step < 3 ? (
           <Btn disabled={!canNext[step]} onClick={() => setStep(s => s + 1)}>
-            Continue
+            Davom etish
           </Btn>
         ) : (
           <Btn disabled={!canNext[3] || submitting} onClick={confirm}>
-            {submitting ? 'Confirming…' : 'Confirm Booking'}
+            {submitting ? 'Saqlanmoqda…' : 'Navbatni tasdiqlash'}
           </Btn>
         )}
       </div>
