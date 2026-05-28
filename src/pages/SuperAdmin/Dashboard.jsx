@@ -2,37 +2,50 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../../config/supabaseClient'
 import { Loader, SectionTitle, Btn, Select } from '../../components/UiKit'
 
-// ── Design tokens ─────────────────────────────────────────────
-const glass = {
-  background: 'rgba(255,255,255,0.04)',
-  backdropFilter: 'blur(20px) saturate(180%)',
-  WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-  border: '1px solid rgba(255,255,255,0.08)',
-  boxShadow: '0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)',
-}
-const glassGold = {
-  ...glass,
-  border: '1px solid rgba(212,175,55,0.3)',
-  boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(212,175,55,0.1), inset 0 1px 0 rgba(255,255,255,0.06)',
+// ── Style tokens ──────────────────────────────────────────────
+const G = {
+  card: {
+    background: 'rgba(255,255,255,0.03)',
+    backdropFilter: 'blur(24px) saturate(160%)',
+    WebkitBackdropFilter: 'blur(24px) saturate(160%)',
+    border: '1px solid rgba(255,255,255,0.08)',
+    boxShadow: '0 30px 60px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.10)',
+    borderRadius: '20px',
+  },
+  cardGold: {
+    background: 'rgba(255,255,255,0.03)',
+    backdropFilter: 'blur(24px) saturate(160%)',
+    WebkitBackdropFilter: 'blur(24px) saturate(160%)',
+    border: '1px solid rgba(255,204,0,0.2)',
+    boxShadow: '0 30px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,204,0,0.06), inset 0 1px 0 rgba(255,255,255,0.10)',
+    borderRadius: '24px',
+  },
 }
 
+// ── Float keyframes injected once ────────────────────────────
+const FLOAT_CSS = `
+@keyframes float {
+  0%,100% { transform: translateY(0px); }
+  50%      { transform: translateY(-6px); }
+}
+@keyframes floatB {
+  0%,100% { transform: translateY(0px); }
+  50%      { transform: translateY(-4px); }
+}
+`
+
 // ── Metric Card ───────────────────────────────────────────────
-function Metric({ label, value, sub }) {
+function Metric({ label, value, sub, delay = '0s', color = '#ffcc00' }) {
   return (
-    <div className="rounded-2xl p-5 flex flex-col gap-2" style={glass}>
-      <p className="text-xs text-white/35 tracking-widest uppercase">{label}</p>
-      <p
-        className="text-3xl font-bold"
-        style={{ color: '#D4AF37', textShadow: '0 0 20px rgba(212,175,55,0.5), 0 0 40px rgba(212,175,55,0.2)' }}
-      >
-        {value}
-      </p>
-      {sub && <p className="text-xs text-white/25">{sub}</p>}
+    <div style={{ ...G.card, padding: '24px 20px', display: 'flex', flexDirection: 'column', gap: 8, animation: `float 5s ease-in-out ${delay} infinite` }}>
+      <p style={{ fontSize: 10, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', margin: 0 }}>{label}</p>
+      <p style={{ fontSize: 32, fontWeight: 700, margin: 0, color, textShadow: `0 0 20px ${color}80, 0 0 40px ${color}30` }}>{value}</p>
+      {sub && <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', margin: 0 }}>{sub}</p>}
     </div>
   )
 }
 
-// ── Plan price editor row ─────────────────────────────────────
+// ── Plan row ──────────────────────────────────────────────────
 function PlanRow({ plan, onSave }) {
   const [price, setPrice] = useState(String(plan.price))
   const [saving, setSaving] = useState(false)
@@ -45,72 +58,60 @@ function PlanRow({ plan, onSave }) {
   }
 
   return (
-    <div className="flex items-center gap-3 py-3.5 border-b border-white/5 last:border-0">
-      <span className="flex-1 text-sm text-white font-medium">{plan.name}</span>
-      <span className="text-xs text-white/25 w-28 text-right hidden sm:block">
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+      <span style={{ flex: 1, fontSize: 13, color: '#fff', fontWeight: 500 }}>{plan.name}</span>
+      <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', minWidth: 110, textAlign: 'right' }}>
         SMS {plan.sms_limit} / Call {plan.call_limit}
       </span>
-      <input
-        value={price}
-        onChange={e => setPrice(e.target.value)}
-        className="w-28 rounded-xl px-3 py-2 text-sm text-white text-right outline-none focus:ring-1 focus:ring-gold/40"
-        style={glass}
-      />
-      <span className="text-xs text-white/25">UZS</span>
+      <input value={price} onChange={e => setPrice(e.target.value)}
+        style={{ ...G.card, width: 110, padding: '8px 12px', fontSize: 13, color: '#fff', textAlign: 'right', outline: 'none', borderRadius: 12 }} />
+      <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)' }}>UZS</span>
       <button onClick={save} disabled={saving || Number(price) === plan.price}
-        className="px-3 py-2 rounded-xl text-xs font-semibold transition-all disabled:opacity-25"
-        style={{ background: 'rgba(212,175,55,0.12)', color: '#D4AF37', border: '1px solid rgba(212,175,55,0.2)' }}>
+        style={{ padding: '8px 14px', borderRadius: 12, fontSize: 11, fontWeight: 600, cursor: 'pointer', transition: 'all .2s',
+          background: 'rgba(255,204,0,0.1)', color: '#ffcc00', border: '1px solid rgba(255,204,0,0.2)', opacity: (saving || Number(price) === plan.price) ? 0.3 : 1 }}>
         {saving ? '…' : 'Saqlash'}
       </button>
     </div>
   )
 }
 
-// ── Update Subscription Modal ─────────────────────────────────
+// ── Modal ─────────────────────────────────────────────────────
 function UpdateModal({ shop, plans, onClose, onSaved }) {
   const [planId, setPlanId] = useState(shop.subscription_plan_id ?? '')
   const [saving, setSaving] = useState(false)
+  const sel = plans.find(x => x.id === planId)
 
   async function save() {
-    const plan = plans.find(p => p.id === planId)
-    if (!plan) return
+    if (!sel) return
     setSaving(true)
-    const expires = new Date()
-    expires.setDate(expires.getDate() + 30)
+    const expires = new Date(); expires.setDate(expires.getDate() + 30)
     await supabase.from('barbershops').update({
-      subscription_plan_id: plan.id,
-      subscription_expires_at: expires.toISOString(),
-      sms_limit_remaining: plan.sms_limit,
-      call_limit_remaining: plan.call_limit,
+      subscription_plan_id: sel.id, subscription_expires_at: expires.toISOString(),
+      sms_limit_remaining: sel.sms_limit, call_limit_remaining: sel.call_limit,
     }).eq('id', shop.id)
-    onSaved(shop.id, { plan, expires: expires.toISOString() })
-    setSaving(false)
-    onClose()
+    onSaved(shop.id, { plan: sel, expires: expires.toISOString() })
+    setSaving(false); onClose()
   }
 
-  const selectedPlan = plans.find(x => x.id === planId)
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)' }}>
-      <div className="w-full max-w-sm rounded-3xl p-6 flex flex-col gap-5" style={glassGold}>
-        <div className="flex justify-between items-center">
-          <h2 className="text-white font-semibold">{shop.name}</h2>
-          <button onClick={onClose} className="text-white/30 hover:text-white transition-colors text-lg leading-none">✕</button>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+      background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)' }}>
+      <div style={{ ...G.cardGold, padding: 28, width: '100%', maxWidth: 380, display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2 style={{ margin: 0, fontSize: 16, color: '#fff', fontWeight: 600 }}>{shop.name}</h2>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>✕</button>
         </div>
 
         <Select label="Yangi tarif" value={planId} onChange={e => setPlanId(e.target.value)}>
-          {plans.map(p => (
-            <option key={p.id} value={p.id}>{p.name} — {p.price.toLocaleString()} UZS</option>
-          ))}
+          {plans.map(p => <option key={p.id} value={p.id}>{p.name} — {p.price.toLocaleString()} UZS</option>)}
         </Select>
 
-        {selectedPlan && (
-          <div className="rounded-2xl p-3 flex flex-col gap-2 text-xs" style={glass}>
-            {[['SMS limiti', selectedPlan.sms_limit], ["Qo'ng'iroq limiti", selectedPlan.call_limit], ['Muddat', '+30 kun']].map(([k, v]) => (
-              <div key={k} className="flex justify-between">
-                <span className="text-white/40">{k}</span>
-                <span className="text-white font-medium">{v}</span>
+        {sel && (
+          <div style={{ ...G.card, padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {[['SMS limiti', sel.sms_limit], ["Qo'ng'iroq limiti", sel.call_limit], ['Muddat', '+30 kun']].map(([k, v]) => (
+              <div key={k} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>{k}</span>
+                <span style={{ fontSize: 12, color: '#fff', fontWeight: 500 }}>{v}</span>
               </div>
             ))}
           </div>
@@ -124,7 +125,7 @@ function UpdateModal({ shop, plans, onClose, onSaved }) {
   )
 }
 
-// ── Main Dashboard ────────────────────────────────────────────
+// ── Main ──────────────────────────────────────────────────────
 export default function SuperAdminDashboard() {
   const [shops, setShops] = useState([])
   const [plans, setPlans] = useState([])
@@ -138,9 +139,7 @@ export default function SuperAdminDashboard() {
         .order('created_at', { ascending: false }),
       supabase.from('subscription_plans').select('*').order('price'),
     ])
-    setShops(s ?? [])
-    setPlans(p ?? [])
-    setLoading(false)
+    setShops(s ?? []); setPlans(p ?? []); setLoading(false)
   }, [])
 
   useEffect(() => { load() }, [load])
@@ -153,144 +152,130 @@ export default function SuperAdminDashboard() {
   function handleSaved(shopId, { plan, expires }) {
     setShops(prev => prev.map(s => s.id === shopId ? {
       ...s, subscription_plan_id: plan.id, subscription_expires_at: expires,
-      sms_limit_remaining: plan.sms_limit, call_limit_remaining: plan.call_limit,
-      subscription_plans: plan,
+      sms_limit_remaining: plan.sms_limit, call_limit_remaining: plan.call_limit, subscription_plans: plan,
     } : s))
-  }
-
-  function handlePlanPriceSaved(planId, price) {
-    setPlans(prev => prev.map(p => p.id === planId ? { ...p, price } : p))
   }
 
   const activeShops = shops.filter(s => s.is_active)
   const monthlyRevenue = activeShops.reduce((sum, s) => sum + (s.subscription_plans?.price ?? 0), 0)
-  const totalSmsUsed = shops.reduce((sum, s) => {
-    const plan = plans.find(p => p.id === s.subscription_plan_id)
-    return sum + ((plan?.sms_limit ?? 0) - (s.sms_limit_remaining ?? 0))
-  }, 0)
-  const totalCallsUsed = shops.reduce((sum, s) => {
-    const plan = plans.find(p => p.id === s.subscription_plan_id)
-    return sum + ((plan?.call_limit ?? 0) - (s.call_limit_remaining ?? 0))
-  }, 0)
-
-  const fmtDate = (iso) => iso ? new Date(iso).toLocaleDateString([], { day: '2-digit', month: 'short', year: '2-digit' }) : '—'
+  const totalSmsUsed = shops.reduce((sum, s) => sum + ((plans.find(p => p.id === s.subscription_plan_id)?.sms_limit ?? 0) - (s.sms_limit_remaining ?? 0)), 0)
+  const totalCallsUsed = shops.reduce((sum, s) => sum + ((plans.find(p => p.id === s.subscription_plan_id)?.call_limit ?? 0) - (s.call_limit_remaining ?? 0)), 0)
+  const fmtDate = iso => iso ? new Date(iso).toLocaleDateString([], { day: '2-digit', month: 'short', year: '2-digit' }) : '—'
 
   if (loading) return (
-    <div className="min-h-screen bg-obsidian-900 flex items-center justify-center">
+    <div style={{ minHeight: '100vh', background: 'radial-gradient(circle at top right, #1a0b2e, #0a0512)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <Loader />
     </div>
   )
 
   return (
-    <div className="min-h-screen text-white" style={{ background: '#080808' }}>
+    <>
+      <style>{FLOAT_CSS}</style>
+      <div style={{ minHeight: '100vh', background: 'radial-gradient(circle at top right, #1a0b2e, #0a0512)', color: '#fff', fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif' }}>
 
-      {/* Ambient orbs */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute -top-32 -right-32 w-[600px] h-[600px] rounded-full"
-          style={{ background: 'radial-gradient(circle, rgba(212,175,55,0.06) 0%, transparent 70%)' }} />
-        <div className="absolute -bottom-32 -left-32 w-[500px] h-[500px] rounded-full"
-          style={{ background: 'radial-gradient(circle, rgba(212,175,55,0.04) 0%, transparent 70%)' }} />
-      </div>
-
-      <div className="relative z-10 max-w-6xl mx-auto px-4 py-8">
-
-        {/* Header */}
-        <div className="mb-10">
-          <p className="text-xs tracking-widest uppercase mb-2" style={{ color: 'rgba(212,175,55,0.5)' }}>
-            Platforma boshqaruvi
-          </p>
-          <h1 className="text-4xl font-bold tracking-tight"
-            style={{ textShadow: '0 0 60px rgba(212,175,55,0.15)' }}>
-            SuperAdmin paneli
-          </h1>
+        {/* Ambient orbs */}
+        <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', top: -100, right: -100, width: 600, height: 600, borderRadius: '50%', background: 'radial-gradient(circle, rgba(138,43,226,0.12) 0%, transparent 70%)' }} />
+          <div style={{ position: 'absolute', bottom: -150, left: -100, width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,204,0,0.07) 0%, transparent 70%)' }} />
+          <div style={{ position: 'absolute', top: '40%', left: '30%', width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, rgba(138,43,226,0.06) 0%, transparent 70%)' }} />
         </div>
 
-        {/* Metrics */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
-          <Metric label="Faol salonlar" value={activeShops.length} sub={`${shops.length} jami`} />
-          <Metric label="Oylik tushum" value={`${(monthlyRevenue / 1_000_000).toFixed(2)}M`} sub="UZS" />
-          <Metric label="SMS yuborildi" value={totalSmsUsed.toLocaleString()} sub="bu davr" />
-          <Metric label="Qo'ng'iroqlar" value={totalCallsUsed.toLocaleString()} sub="bu davr" />
-        </div>
+        <div style={{ position: 'relative', zIndex: 10, maxWidth: 1200, margin: '0 auto', padding: '40px 20px' }}>
 
-        {/* Tenant table */}
-        <div className="mb-10">
-          <SectionTitle>Salonlar boshqaruvi</SectionTitle>
-          <div className="rounded-2xl overflow-hidden" style={glass}>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                    {['Salon', 'Tarif', 'Muddat', 'SMS', "Qo'ng'iroq", 'Holat', ''].map(h => (
-                      <th key={h} className="px-4 py-3.5 text-left text-xs font-medium tracking-widest uppercase whitespace-nowrap"
-                        style={{ color: 'rgba(255,255,255,0.25)' }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {shops.map(s => (
-                    <tr key={s.id} className="transition-colors"
-                      style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
-                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}
-                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                      <td className="px-4 py-3.5 font-medium text-white whitespace-nowrap">{s.name}</td>
-                      <td className="px-4 py-3.5">
-                        <span className="text-xs px-2.5 py-1 rounded-full font-medium"
-                          style={{ background: 'rgba(212,175,55,0.1)', color: '#D4AF37', border: '1px solid rgba(212,175,55,0.2)' }}>
-                          {s.subscription_plans?.name ?? '—'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3.5 whitespace-nowrap" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                        {fmtDate(s.subscription_expires_at)}
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <span className={`text-sm font-semibold ${(s.sms_limit_remaining ?? 0) > 10 ? 'text-emerald-400' : 'text-red-400'}`}>
-                          {s.sms_limit_remaining ?? 0}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <span className={`text-sm font-semibold ${(s.call_limit_remaining ?? 0) > 5 ? 'text-emerald-400' : 'text-red-400'}`}>
-                          {s.call_limit_remaining ?? 0}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <button onClick={() => toggleActive(s.id, s.is_active)}
-                          className="relative w-10 h-5 rounded-full transition-all duration-300"
-                          style={{ background: s.is_active ? '#D4AF37' : 'rgba(255,255,255,0.1)', boxShadow: s.is_active ? '0 0 12px rgba(212,175,55,0.4)' : 'none' }}>
-                          <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-md transition-all duration-300 ${s.is_active ? 'left-5' : 'left-0.5'}`} />
-                        </button>
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <button onClick={() => setModal(s)}
-                          className="text-xs px-3 py-1.5 rounded-lg transition-all whitespace-nowrap"
-                          style={{ background: 'rgba(212,175,55,0.08)', color: '#D4AF37', border: '1px solid rgba(212,175,55,0.2)' }}
-                          onMouseEnter={e => e.currentTarget.style.background = 'rgba(212,175,55,0.15)'}
-                          onMouseLeave={e => e.currentTarget.style.background = 'rgba(212,175,55,0.08)'}>
-                          Tarifni yangilash
-                        </button>
-                      </td>
+          {/* Header */}
+          <div style={{ marginBottom: 40 }}>
+            <p style={{ fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(255,204,0,0.45)', marginBottom: 8 }}>
+              Platforma boshqaruvi
+            </p>
+            <h1 style={{ fontSize: 36, fontWeight: 700, margin: 0, letterSpacing: '-0.02em',
+              background: 'linear-gradient(135deg, #fff 40%, rgba(255,204,0,0.7))',
+              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+              SuperAdmin paneli
+            </h1>
+          </div>
+
+          {/* Metrics */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 40 }}>
+            <Metric label="Faol salonlar"  value={activeShops.length}                          sub={`${shops.length} jami`} delay="0s"    color="#ffcc00" />
+            <Metric label="Oylik tushum"   value={`${(monthlyRevenue/1_000_000).toFixed(2)}M`} sub="UZS"                   delay="0.4s"  color="#ffcc00" />
+            <Metric label="SMS yuborildi"  value={totalSmsUsed.toLocaleString()}               sub="bu davr"               delay="0.8s"  color="#b57bee" />
+            <Metric label="Qo'ng'iroqlar"  value={totalCallsUsed.toLocaleString()}             sub="bu davr"               delay="1.2s"  color="#b57bee" />
+          </div>
+
+          {/* Tenant table */}
+          <div style={{ marginBottom: 40 }}>
+            <SectionTitle>Salonlar boshqaruvi</SectionTitle>
+            <div style={{ ...G.card, overflow: 'hidden' }}>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                      {['Salon', 'Tarif', 'Muddat', 'SMS', "Qo'ng'iroq", 'Holat', ''].map(h => (
+                        <th key={h} style={{ padding: '14px 16px', textAlign: 'left', fontSize: 10, fontWeight: 500, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.2)', whiteSpace: 'nowrap' }}>{h}</th>
+                      ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {shops.map(s => (
+                      <tr key={s.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', transition: 'background .15s' }}
+                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                        <td style={{ padding: '14px 16px', fontWeight: 600, color: '#fff', whiteSpace: 'nowrap' }}>{s.name}</td>
+                        <td style={{ padding: '14px 16px' }}>
+                          <span style={{ fontSize: 11, padding: '4px 10px', borderRadius: 20, fontWeight: 600,
+                            background: 'rgba(255,204,0,0.08)', color: '#ffcc00', border: '1px solid rgba(255,204,0,0.18)' }}>
+                            {s.subscription_plans?.name ?? '—'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '14px 16px', color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap' }}>{fmtDate(s.subscription_expires_at)}</td>
+                        <td style={{ padding: '14px 16px' }}>
+                          <span style={{ fontWeight: 700, fontSize: 14, color: (s.sms_limit_remaining ?? 0) > 10 ? '#4ade80' : '#f87171' }}>
+                            {s.sms_limit_remaining ?? 0}
+                          </span>
+                        </td>
+                        <td style={{ padding: '14px 16px' }}>
+                          <span style={{ fontWeight: 700, fontSize: 14, color: (s.call_limit_remaining ?? 0) > 5 ? '#4ade80' : '#f87171' }}>
+                            {s.call_limit_remaining ?? 0}
+                          </span>
+                        </td>
+                        <td style={{ padding: '14px 16px' }}>
+                          <button onClick={() => toggleActive(s.id, s.is_active)}
+                            style={{ position: 'relative', width: 40, height: 22, borderRadius: 11, border: 'none', cursor: 'pointer', transition: 'all .3s',
+                              background: s.is_active ? '#ffcc00' : 'rgba(255,255,255,0.1)',
+                              boxShadow: s.is_active ? '0 0 14px rgba(255,204,0,0.45)' : 'none' }}>
+                            <span style={{ position: 'absolute', top: 3, width: 16, height: 16, borderRadius: '50%', background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.3)', transition: 'left .3s', left: s.is_active ? 21 : 3 }} />
+                          </button>
+                        </td>
+                        <td style={{ padding: '14px 16px' }}>
+                          <button onClick={() => setModal(s)}
+                            style={{ fontSize: 11, padding: '7px 14px', borderRadius: 10, cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all .2s',
+                              background: 'rgba(255,204,0,0.07)', color: '#ffcc00', border: '1px solid rgba(255,204,0,0.18)' }}
+                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,204,0,0.14)'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,204,0,0.07)'}>
+                            Tarifni yangilash
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          {/* Plan editor */}
+          <div>
+            <SectionTitle>Tarif narxlari</SectionTitle>
+            <div style={{ ...G.card, padding: '4px 20px' }}>
+              {plans.map(p => (
+                <PlanRow key={p.id} plan={p} onSave={(id, price) => setPlans(prev => prev.map(x => x.id === id ? { ...x, price } : x))} />
+              ))}
             </div>
           </div>
         </div>
 
-        {/* Plan editor */}
-        <div>
-          <SectionTitle>Tarif narxlari</SectionTitle>
-          <div className="rounded-2xl p-4" style={glass}>
-            {plans.map(p => (
-              <PlanRow key={p.id} plan={p} onSave={handlePlanPriceSaved} />
-            ))}
-          </div>
-        </div>
+        {modal && <UpdateModal shop={modal} plans={plans} onClose={() => setModal(null)} onSaved={handleSaved} />}
       </div>
-
-      {modal && (
-        <UpdateModal shop={modal} plans={plans} onClose={() => setModal(null)} onSaved={handleSaved} />
-      )}
-    </div>
+    </>
   )
 }
