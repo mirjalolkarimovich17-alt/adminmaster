@@ -190,18 +190,37 @@ function ModalBox({ title, onClose, children }) {
 function UpdateModal({ shop, plans, onClose, onSaved }) {
   const [planId, setPlanId] = useState(shop.subscription_plan_id ?? '')
   const [saving, setSaving] = useState(false)
-  const sel = plans.find(x => x.id === planId)
+
+  // Merge DB plans with hardcoded fallbacks so dropdown is never empty
+  const FALLBACK = [
+    { id: 'standard', name: 'Standard',  price: 200000, sms_limit: 100, call_limit: 50 },
+    { id: 'premium',  name: 'Premium',   price: 500000, sms_limit: 300, call_limit: 150 },
+    { id: 'vip',      name: 'VIP Brand', price: 1000000, sms_limit: 700, call_limit: 350 },
+  ]
+  const opts = plans.length > 0 ? plans : FALLBACK
+  const sel = opts.find(x => x.id === planId) ?? opts[0]
 
   async function save() {
     if (!sel) return
     setSaving(true)
     const expires = new Date(); expires.setDate(expires.getDate() + 30)
-    await supabase.from('barbershops').update({
-      subscription_plan_id: sel.id, subscription_expires_at: expires.toISOString(),
-      sms_limit_remaining: sel.sms_limit, call_limit_remaining: sel.call_limit,
+    const { error } = await supabase.from('barbershops').update({
+      subscription_plan_id: sel.id,
+      subscription_expires_at: expires.toISOString(),
+      sms_limit_remaining: sel.sms_limit,
+      call_limit_remaining: sel.call_limit,
     }).eq('id', shop.id)
+    setSaving(false)
+    if (error) { console.error('[UpdateModal]', error.message); return }
+    console.log(`✅ Tarif yangilandi: ${shop.name} → ${sel.name}`)
     onSaved(shop.id, { plan: sel, expires: expires.toISOString() })
-    setSaving(false); onClose()
+    onClose()
+  }
+
+  const selectStyle = {
+    ...G.card, width: '100%', padding: '12px 14px', fontSize: 13,
+    color: '#fff', outline: 'none', borderRadius: 14, boxSizing: 'border-box',
+    background: '#0f0a1e', appearance: 'none', cursor: 'pointer',
   }
 
   return (
@@ -213,9 +232,16 @@ function UpdateModal({ shop, plans, onClose, onSaved }) {
           <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>✕</button>
         </div>
 
-        <Select label="Yangi tarif" value={planId} onChange={e => setPlanId(e.target.value)}>
-          {plans.map(p => <option key={p.id} value={p.id}>{p.name} — {p.price.toLocaleString()} UZS</option>)}
-        </Select>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <label style={{ fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)' }}>Yangi tarif</label>
+          <select value={planId || opts[0]?.id} onChange={e => setPlanId(e.target.value)} style={selectStyle}>
+            {opts.map(p => (
+              <option key={p.id} value={p.id} style={{ background: '#0f0a1e', color: '#fff' }}>
+                {p.name} — {Number(p.price).toLocaleString()} UZS
+              </option>
+            ))}
+          </select>
+        </div>
 
         {sel && (
           <div style={{ ...G.card, padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -228,7 +254,7 @@ function UpdateModal({ shop, plans, onClose, onSaved }) {
           </div>
         )}
 
-        <Btn onClick={save} disabled={saving || !planId}>
+        <Btn onClick={save} disabled={saving || !sel}>
           {saving ? 'Saqlanmoqda…' : 'Tasdiqlash va limitlarni yangilash'}
         </Btn>
       </div>
