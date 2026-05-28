@@ -216,7 +216,31 @@ export default function SuperAdminDashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {shops.map(s => (
+                    {shops.length === 0 ? (
+                      <tr>
+                        <td colSpan={7}>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, padding: '48px 20px' }}>
+                            <div style={{ width: 56, height: 56, borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                              <svg width="24" height="24" fill="none" stroke="rgba(255,204,0,0.5)" strokeWidth="1.5" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349m-16.5 11.65V9.35m0 0a3.001 3.001 0 003.75-.615A2.993 2.993 0 009.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 002.25 1.016c.896 0 1.7-.393 2.25-1.016a3.001 3.001 0 003.75.614m-16.5 0a3.004 3.004 0 01-.621-4.72L4.318 3.44A1.5 1.5 0 015.378 3h13.243a1.5 1.5 0 011.06.44l1.19 1.189a3 3 0 01-.621 4.72m-13.5 8.65h3.75a.75.75 0 00.75-.75V13.5a.75.75 0 00-.75-.75H6.75a.75.75 0 00-.75.75v3.75c0 .415.336.75.75.75z" />
+                              </svg>
+                            </div>
+                            <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.02em' }}>
+                              Hozircha faol salonlar mavjud emas
+                            </p>
+                            <button
+                              style={{ fontSize: 12, fontWeight: 600, padding: '10px 20px', borderRadius: 12, cursor: 'pointer', letterSpacing: '0.04em',
+                                background: 'rgba(255,204,0,0.07)', color: '#ffcc00', border: '1px solid rgba(255,204,0,0.2)',
+                                boxShadow: '0 0 20px rgba(255,204,0,0.08)', transition: 'all .2s' }}
+                              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,204,0,0.14)'; e.currentTarget.style.boxShadow = '0 0 24px rgba(255,204,0,0.18)' }}
+                              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,204,0,0.07)'; e.currentTarget.style.boxShadow = '0 0 20px rgba(255,204,0,0.08)' }}>
+                              + Yangi Salon Qo'shish
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : shops.map(s => (
                       <tr key={s.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', transition: 'background .15s' }}
                         onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}
                         onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
@@ -263,14 +287,84 @@ export default function SuperAdminDashboard() {
             </div>
           </div>
 
-          {/* Plan editor */}
+          {/* Plan cards */}
           <div>
             <SectionTitle>Tarif narxlari</SectionTitle>
-            <div style={{ ...G.card, padding: '4px 20px' }}>
-              {plans.map(p => (
-                <PlanRow key={p.id} plan={p} onSave={(id, price) => setPlans(prev => prev.map(x => x.id === id ? { ...x, price } : x))} />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 20, marginBottom: 32 }}>
+              {[
+                { name: 'STANDARD', price: '200,000', badge: null,
+                  features: ["1 Salon uchun", "Cheksiz navbatlar", "SMS ogohlantirishlar"],
+                  accent: 'rgba(255,255,255,0.7)' },
+                { name: 'PREMIUM', price: '500,000', badge: 'Mashhur',
+                  features: ["3 Salon uchun", "Ustalar statistikasi", "CRM boshqaruv"],
+                  accent: '#ffcc00' },
+                { name: 'VIP BRAND', price: '1,000,000', badge: 'Elite',
+                  features: ["Cheksiz salonlar", "Shaxsiy menejer", "24/7 Support"],
+                  accent: '#b57bee' },
+              ].map((plan, i) => (
+                <div key={plan.name} style={{
+                  ...G.card,
+                  border: `1px solid rgba(255,255,255,${plan.name === 'PREMIUM' ? '0.14' : '0.07'})`,
+                  boxShadow: plan.name === 'PREMIUM'
+                    ? '0 30px 60px rgba(0,0,0,0.5), 0 0 40px rgba(255,204,0,0.08), inset 0 1px 0 rgba(255,255,255,0.12)'
+                    : G.card.boxShadow,
+                  padding: 28, display: 'flex', flexDirection: 'column', gap: 20,
+                  animation: `float 5s ease-in-out ${i * 0.3}s infinite`,
+                  position: 'relative', overflow: 'hidden',
+                }}>
+                  {/* Top glow line */}
+                  <div style={{ position: 'absolute', top: 0, left: '20%', right: '20%', height: 1,
+                    background: `linear-gradient(90deg, transparent, ${plan.accent}60, transparent)` }} />
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <p style={{ margin: 0, fontSize: 11, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: plan.accent }}>{plan.name}</p>
+                    {plan.badge && (
+                      <span style={{ fontSize: 10, fontWeight: 600, padding: '3px 10px', borderRadius: 20, letterSpacing: '0.08em',
+                        background: `${plan.accent}18`, color: plan.accent, border: `1px solid ${plan.accent}35` }}>
+                        {plan.badge}
+                      </span>
+                    )}
+                  </div>
+
+                  <div>
+                    <p style={{ margin: 0, fontSize: 30, fontWeight: 700, color: plan.accent,
+                      textShadow: `0 0 20px ${plan.accent}60, 0 0 40px ${plan.accent}25` }}>
+                      {plan.price}
+                    </p>
+                    <p style={{ margin: '4px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>UZS / oy</p>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {plan.features.map(f => (
+                      <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{ width: 5, height: 5, borderRadius: '50%', background: plan.accent, boxShadow: `0 0 6px ${plan.accent}` }} />
+                        <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>{f}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <button
+                    style={{ marginTop: 'auto', padding: '12px', borderRadius: 14, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                      letterSpacing: '0.06em', transition: 'all .25s',
+                      background: `${plan.accent}12`, color: plan.accent,
+                      border: `1px solid ${plan.accent}30`,
+                      boxShadow: `0 0 20px ${plan.accent}10` }}
+                    onMouseEnter={e => { e.currentTarget.style.background = `${plan.accent}22`; e.currentTarget.style.boxShadow = `0 0 28px ${plan.accent}25` }}
+                    onMouseLeave={e => { e.currentTarget.style.background = `${plan.accent}12`; e.currentTarget.style.boxShadow = `0 0 20px ${plan.accent}10` }}>
+                    Tahrirlash
+                  </button>
+                </div>
               ))}
             </div>
+
+            {/* Inline price editor for DB plans */}
+            {plans.length > 0 && (
+              <div style={{ ...G.card, padding: '4px 20px' }}>
+                {plans.map(p => (
+                  <PlanRow key={p.id} plan={p} onSave={(id, price) => setPlans(prev => prev.map(x => x.id === id ? { ...x, price } : x))} />
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
