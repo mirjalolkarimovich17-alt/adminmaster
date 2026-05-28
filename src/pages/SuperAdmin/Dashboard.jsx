@@ -244,6 +244,7 @@ function SalonEditModal({ shop, dbPlans, onClose, onSaved }) {
       plan: dbPlan ?? { id: tierKey, name: tier?.label, price: tier?.price, sms_limit: tier?.sms, call_limit: tier?.calls },
       expires: expires.toISOString(),
     })
+    setSaving(false)
     onClose()
   }
 
@@ -295,15 +296,14 @@ function SalonEditModal({ shop, dbPlans, onClose, onSaved }) {
 
 // ── GlobalPriceModal — edit display price on plan cards ───────
 function GlobalPriceModal({ plan, onClose, onSaved }) {
-  const [price, setPrice] = useState(plan.price ?? '')
+  // Strip commas/non-digits so type="number" input works correctly
+  const [price, setPrice] = useState(String(plan.price ?? '').replace(/[^0-9]/g, ''))
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState('')
 
-  // Find matching DB plan by name to update subscription_plans table
   async function save() {
     setErr('')
     setSaving(true)
-    // Try to update subscription_plans if a real DB id exists
     if (plan.dbId) {
       const { error } = await supabase.from('subscription_plans').update({ price: Number(price) }).eq('id', plan.dbId)
       if (error) {
@@ -312,10 +312,41 @@ function GlobalPriceModal({ plan, onClose, onSaved }) {
         return
       }
     }
+    setSaving(false)
     alert('✅ Narx muvaffaqiyatli yangilandi!')
     onSaved({ ...plan, price: String(price) })
-    setSaving(false)
     onClose()
+  }
+
+  const inp = { ...G.card, width: '100%', padding: '12px 14px', fontSize: 13, color: '#fff', outline: 'none', borderRadius: 14, boxSizing: 'border-box' }
+
+  return (
+    <Overlay>
+      <ModalBox title={`Narxni tahrirlash — ${plan.name}`} onClose={onClose}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <label style={LBL}>Yangi narx (UZS / oy)</label>
+          <input
+            style={inp}
+            type="number"
+            min="0"
+            value={price}
+            onChange={e => setPrice(e.target.value)}
+            placeholder="200000"
+            autoFocus
+          />
+        </div>
+        {err && (
+          <div style={{ padding: '10px 14px', borderRadius: 12, background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)', fontSize: 12, color: '#fca5a5' }}>
+            {err}
+          </div>
+        )}
+        <Btn onClick={save} disabled={saving || !price}>
+          {saving ? 'Saqlanmoqda…' : 'Saqlash'}
+        </Btn>
+      </ModalBox>
+    </Overlay>
+  )
+}
   }
 
   const inp = { ...G.card, width: '100%', padding: '12px 14px', fontSize: 13, color: '#fff', outline: 'none', borderRadius: 14, boxSizing: 'border-box' }
@@ -603,7 +634,7 @@ export default function SuperAdminDashboard() {
           </div>
         </div>
 
-        {modal && <SalonEditModal shop={modal} dbPlans={plans} onClose={() => setModal(null)} onSaved={handleSaved} />}
+        {modal && <SalonEditModal key={modal.id + Date.now()} shop={modal} dbPlans={plans} onClose={() => setModal(null)} onSaved={handleSaved} />}
         {newSalon && <NewSalonModal plans={plans} onClose={() => setNewSalon(false)} onCreated={s => setShops(prev => [s, ...prev])} />}
         {editPlan && <GlobalPriceModal plan={editPlan} onClose={() => setEditPlan(null)} onSaved={updated => {
           setEditPlan(null)
