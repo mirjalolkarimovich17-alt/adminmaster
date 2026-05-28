@@ -187,32 +187,62 @@ function ModalBox({ title, onClose, children }) {
 }
 
 // ── Modal ─────────────────────────────────────────────────────
-function UpdateModal({ shop, plans, onClose, onSaved }) {
+function UpdateModal({ shop, plans: parentPlans, onClose, onSaved }) {
+  // Self-load plans if parent hasn't fetched them yet
+  const [plans, setPlans] = useState(parentPlans)
   const [planId, setPlanId] = useState(shop.subscription_plan_id ?? '')
   const [saving, setSaving] = useState(false)
+  const [err, setErr] = useState('')
 
-  // Merge DB plans with hardcoded fallbacks so dropdown is never empty
-  const FALLBACK = [
-    { id: 'standard', name: 'Standard',  price: 200000, sms_limit: 100, call_limit: 50 },
-    { id: 'premium',  name: 'Premium',   price: 500000, sms_limit: 300, call_limit: 150 },
-    { id: 'vip',      name: 'VIP Brand', price: 1000000, sms_limit: 700, call_limit: 350 },
-  ]
-  const opts = plans.length > 0 ? plans : FALLBACK
-  const sel = opts.find(x => x.id === planId) ?? opts[0]
+  useEffect(() => {
+    if (plans.length === 0) {
+      supabase.from('subscription_plans').select('*').order('price')
+        .then(({ data }) => {
+          if (data?.length) {
+            setPlans(data)
+            setPlanId(p => p || data[0].id)
+          }
+        })
+    } else if (!planId) {
+      setPlanId(plans[0].id)
+    }
+  }, [])
+
+  const sel = plans.find(x => x.id === planId)
 
   async function save() {
-    if (!sel) return
+    if (!sel || !shop.id) return
+    setErr('')
     setSaving(true)
-    const expires = new Date(); expires.setDate(expires.getDate() + 30)
-    const { error } = await supabase.from('barbershops').update({
-      subscription_plan_id: sel.id,
-      subscription_expires_at: expires.toISOString(),
-      sms_limit_remaining: sel.sms_limit,
-      call_limit_remaining: sel.call_limit,
-    }).eq('id', shop.id)
+
+    console.log('Saving tariff:', sel.name, '(', sel.id, ') for shop:', shop.id)
+
+    const expires = new Date()
+    expires.setDate(expires.getDate() + 30)
+
+    const { error } = await supabase
+      .from('barbershops')
+      .update({
+        subscription_plan_id:    sel.id,
+        subscription_expires_at: expires.toISOString(),
+        sms_limit_remaining:     sel.sms_limit,
+        call_limit_remaining:    sel.call_limit,
+      })
+      .eq('id', shop.id)
+
     setSaving(false)
-    if (error) { console.error('[UpdateModal]', error.message); return }
-    console.log(`✅ Tarif yangilandi: ${shop.name} → ${sel.name}`)
+
+    if (error) {
+      console.error('[UpdateModal error]', error)
+      setErr(
+        error.message?.toLowerCase().includes('row-level security') || error.message?.toLowerCase().includes('policy')
+          ? '❌ Kirish taqiqlangan (RLS). Supabase policy tekshiring.'
+          : `❌ Xatolik: ${error.message}`
+      )
+      return
+    }
+
+    console.log('✅ Tarif muvaffaqiyatli yangilandi:', shop.name, '→', sel.name)
     onSaved(shop.id, { plan: sel, expires: expires.toISOString() })
     onClose()
   }
@@ -234,13 +264,17 @@ function UpdateModal({ shop, plans, onClose, onSaved }) {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           <label style={{ fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)' }}>Yangi tarif</label>
-          <select value={planId || opts[0]?.id} onChange={e => setPlanId(e.target.value)} style={selectStyle}>
-            {opts.map(p => (
-              <option key={p.id} value={p.id} style={{ background: '#0f0a1e', color: '#fff' }}>
-                {p.name} — {Number(p.price).toLocaleString()} UZS
-              </option>
-            ))}
-          </select>
+          {plans.length === 0 ? (
+            <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>Yuklanmoqda…</p>
+          ) : (
+            <select value={planId} onChange={e => setPlanId(e.target.value)} style={selectStyle}>
+              {plans.map(p => (
+                <option key={p.id} value={p.id} style={{ background: '#0f0a1e', color: '#fff' }}>
+                  {p.name} — {Number(p.price).toLocaleString()} UZS
+                </option>
+              ))}
+            </select>
+          )}
         </div>
 
         {sel && (
@@ -251,6 +285,12 @@ function UpdateModal({ shop, plans, onClose, onSaved }) {
                 <span style={{ fontSize: 12, color: '#fff', fontWeight: 500 }}>{v}</span>
               </div>
             ))}
+          </div>
+        )}
+
+        {err && (
+          <div style={{ padding: '10px 14px', borderRadius: 12, background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)', fontSize: 12, color: '#fca5a5', lineHeight: 1.5 }}>
+            {err}
           </div>
         )}
 
