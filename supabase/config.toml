@@ -1,0 +1,5 @@
+[project]
+id = "barbershop-saas"
+
+[functions.send-notifications]
+verify_jwt = false   # Webhook calls come from Supabase infra, not user JWTs
