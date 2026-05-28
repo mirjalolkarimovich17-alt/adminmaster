@@ -95,7 +95,15 @@ function NewSalonModal({ plans, onClose, onCreated }) {
       is_active: true,
     }).select('id,name,is_active,subscription_plan_id,subscription_expires_at,sms_limit_remaining,call_limit_remaining,subscription_plans(name,price,sms_limit,call_limit)').single()
     setSaving(false)
-    if (error) { setErr(error.message); return }
+    if (error) {
+      const msg = error.message ?? ''
+      setErr(
+        msg.toLowerCase().includes('row-level security') || msg.toLowerCase().includes('rls') || msg.toLowerCase().includes('policy')
+          ? '❌ Tizim xatoligi: Ma\'lumotlar bazasiga kirish taqiqlangan (RLS).'
+          : '❌ Nimadir noto\'g\'ri bajarildi. Iltimos qaytadan urunib ko\'ring.'
+      )
+      return
+    }
     onCreated(data); onClose()
   }
 
@@ -112,7 +120,11 @@ function NewSalonModal({ plans, onClose, onCreated }) {
         <select style={{ ...inp, background: '#0f0a1e' }} value={form.plan_id} onChange={e => setForm(f => ({ ...f, plan_id: e.target.value }))}>
           {plans.map(p => <option key={p.id} value={p.id}>{p.name} — {p.price.toLocaleString()} UZS</option>)}
         </select>
-        {err && <p style={{ margin: 0, fontSize: 12, color: '#f87171' }}>{err}</p>}
+        {err && (
+          <div style={{ padding: '10px 14px', borderRadius: 12, background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)', fontSize: 12, color: '#fca5a5', lineHeight: 1.5 }}>
+            {err}
+          </div>
+        )}
         <Btn onClick={save} disabled={saving}>{saving ? 'Yaratilmoqda…' : 'Salon Yaratish'}</Btn>
       </ModalBox>
     </Overlay>
