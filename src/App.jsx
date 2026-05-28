@@ -61,14 +61,18 @@ function RoleGate() {
   const [role, setRole] = useState(null)
 
   useEffect(() => {
+    // ?role=superadmin|barber|client bypass (works on any device/browser)
+    const param = new URLSearchParams(window.location.search).get('role')
+    if (param && ['superadmin', 'barber', 'client'].includes(param)) {
+      setRole(param)
+      return
+    }
+
     const tg = window.Telegram?.WebApp
-    tg?.ready()           // signal Telegram the app is ready
+    tg?.ready()
     tg?.expand?.()
 
-    // Primary: SDK user id
     let tgId = tg?.initDataUnsafe?.user?.id ?? null
-
-    // Fallback: persisted id from a previous successful session
     if (!tgId) {
       const stored = localStorage.getItem('tg_id')
       if (stored) tgId = Number(stored)
