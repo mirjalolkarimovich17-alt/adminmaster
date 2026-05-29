@@ -8,6 +8,7 @@ import SalonHome from './pages/Salon/Home.jsx'
 import SalonBooking from './pages/Salon/Booking.jsx'
 import SalonAppointments from './pages/Salon/MyAppointments.jsx'
 import Dashboard from './pages/Barber/Dashboard.jsx'
+import BarberProfile from './pages/Barber/BarberProfile.jsx'
 import ManualBooking from './pages/Barber/ManualBooking.jsx'
 import SlotManager from './pages/Barber/SlotManager.jsx'
 import SuperAdminDashboard from './pages/SuperAdmin/Dashboard.jsx'
@@ -126,7 +127,7 @@ export default function App() {
         <Route path="/client/:slug/appointments" element={<SalonAppointments />} />
 
         {/* Barber routes */}
-        <Route path="/barber" element={<Dashboard />} />
+        <Route path="/barber" element={<BarberProfile />} />
         <Route path="/barber/booking" element={<ManualBooking />} />
         <Route path="/barber/slots" element={<SlotManager />} />
 
