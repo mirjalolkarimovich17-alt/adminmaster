@@ -4,7 +4,7 @@ import { supabase, TENANT_ID } from '../../config/supabaseClient'
 import Layout from '../../components/Layout'
 import { Btn, Card, Input, Select, Loader, SectionTitle } from '../../components/UiKit'
 
-export default function SlotManager() {
+export default function SlotManager({ ownerMode = false }) {
   const navigate = useNavigate()
   const today = new Date().toISOString().slice(0, 10)
 
@@ -73,13 +73,13 @@ export default function SlotManager() {
   const fmt = (iso) => new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 
   if (loading) return (
-    <Layout title="Vaqt boshqaruvi" back={() => navigate('/barber')}>
+    <Layout title="Vaqt boshqaruvi" back={() => navigate(ownerMode ? '/owner' : '/barber')}>
       <div className="flex justify-center mt-20"><Loader /></div>
     </Layout>
   )
 
   return (
-    <Layout title="Vaqt boshqaruvi" back={() => navigate('/barber')}>
+    <Layout title="Vaqt boshqaruvi" back={() => navigate(ownerMode ? '/owner' : '/barber')}>
       <form onSubmit={addBlock} className="flex flex-col gap-4 mb-8">
         <SectionTitle>Vaqtni bloklash</SectionTitle>
 

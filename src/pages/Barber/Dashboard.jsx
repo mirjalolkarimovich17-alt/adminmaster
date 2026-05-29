@@ -314,12 +314,12 @@ export default function BarberDashboard({ ownerMode = false }) {
             </h1>
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
-            <button onClick={() => navigate('/barber/booking')}
+            <button onClick={() => navigate(ownerMode ? '/owner/booking' : '/barber/booking')}
               style={{ fontSize: 12, fontWeight: 600, padding: '10px 18px', borderRadius: 12, cursor: 'pointer',
                 background: `${GOLD}15`, color: GOLD, border: `1px solid ${GOLD}30` }}>
               + Navbat
             </button>
-            <button onClick={() => navigate('/barber/slots')}
+            <button onClick={() => navigate(ownerMode ? '/owner/slots' : '/barber/slots')}
               style={{ fontSize: 12, fontWeight: 600, padding: '10px 18px', borderRadius: 12, cursor: 'pointer',
                 background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.1)' }}>
               Vaqtlar

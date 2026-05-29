@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../config/supabaseClient';
-import { Building2, CheckCircle2, XCircle, LayoutGrid, Rocket, Star, Gem, Crown, MessageSquare, Phone, Pencil, Power, PowerOff, ShieldCheck, BadgeDollarSign, FileText } from 'lucide-react';
+import { Building2, CheckCircle2, XCircle, LayoutGrid, Rocket, Star, Gem, Crown, MessageSquare, Phone, Pencil, Power, PowerOff, ShieldCheck, BadgeDollarSign, FileText, Plus, Copy } from 'lucide-react';
 
 const PLAN_META = {
   START: { icon: Rocket, color: 'from-blue-500/20 to-blue-900/10 border-blue-500/30', accent: 'text-blue-400' },
@@ -17,6 +17,9 @@ export default function SuperAdmin() {
   const [activeModal, setActiveModal] = useState(null);
   const [selectedSalon, setSelectedSalon] = useState(null);
   const [tariffInput, setTariffInput] = useState('');
+
+  const [newSalonForm, setNewSalonForm] = useState({ name: '', owner_tg_id: '' });
+  const [newSalonResult, setNewSalonResult] = useState(null);
 
   const [editingPlan, setEditingPlan] = useState(null);
   const [planForm, setPlanForm] = useState({ name: '', price: '', sms_limit: '', call_limit: '', description: '' });
@@ -45,6 +48,18 @@ export default function SuperAdmin() {
     const { error } = await supabase.from('barbershops').update({ subscription_plan_id: tariffInput }).eq('id', selectedSalon.id);
     if (error) alert(`❌ Xatolik: ${error.message}`);
     else { alert('✅ Salon tarifi yangilandi!'); setActiveModal(null); fetchData(); }
+  };
+
+  const handleAddSalon = async (e) => {
+    e.preventDefault();
+    const { data, error } = await supabase
+      .from('barbershops')
+      .insert({ name: newSalonForm.name.trim(), owner_tg_id: Number(newSalonForm.owner_tg_id), is_active: true })
+      .select('id, name')
+      .single();
+    if (error) { alert(`❌ Xatolik: ${error.message}`); return; }
+    setNewSalonResult(data);
+    fetchData();
   };
 
   const handleToggleActive = async (salon) => {
@@ -97,16 +112,31 @@ export default function SuperAdmin() {
         <h2 className="text-xl font-semibold mb-4 text-[#ffcc00] flex items-center gap-2"><Building2 className="w-5 h-5" /> SALONLAR BOSHQARUVI</h2>
         {loading ? <p className="text-gray-400">Yuklanmoqda...</p> : (
           <div className="overflow-x-auto">
+            <div className="flex justify-end mb-3">
+              <button onClick={() => { setNewSalonForm({ name: '', owner_tg_id: '' }); setNewSalonResult(null); setActiveModal('add_salon'); }}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-500/20 border border-purple-500/40 hover:bg-purple-500/30 text-purple-300 text-sm font-medium transition">
+                <Plus className="w-4 h-4" /> Yangi Salon
+              </button>
+            </div>
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-white/10 text-gray-400 text-sm">
-                  <th className="p-3">SALON</th><th className="p-3">TARIF</th><th className="p-3">HOLAT</th><th className="p-3">AMALLAR</th>
+                  <th className="p-3">SALON</th><th className="p-3">TENANT_ID</th><th className="p-3">TARIF</th><th className="p-3">HOLAT</th><th className="p-3">AMALLAR</th>
                 </tr>
               </thead>
               <tbody>
                 {salons.map(salon => (
                   <tr key={salon.id} className="border-b border-white/5 hover:bg-white/5 transition">
                     <td className="p-3 font-medium">{salon.name}</td>
+                    <td className="p-3">
+                      <div className="flex items-center gap-2">
+                        <code className="text-xs text-purple-300 bg-purple-500/10 px-2 py-1 rounded font-mono truncate max-w-[140px]">{salon.id}</code>
+                        <button onClick={() => navigator.clipboard.writeText(salon.id)} title="Nusxa olish"
+                          className="text-gray-500 hover:text-white transition flex-shrink-0">
+                          <Copy className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </td>
                     <td className="p-3 uppercase text-purple-400 font-bold">{getPlanName(salon.subscription_plan_id)}</td>
                     <td className="p-3">
                       {salon.is_active
@@ -167,6 +197,60 @@ export default function SuperAdmin() {
           );
         })}
       </div>
+
+      {/* MODAL: YANGI SALON */}
+      {activeModal === 'add_salon' && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-50">
+          <div className="bg-[#120720] border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl relative">
+            <button onClick={() => setActiveModal(null)} className="absolute top-4 right-4 text-gray-400 hover:text-white text-xl">✕</button>
+            <h3 className="text-xl font-bold mb-5 flex items-center gap-2"><Plus className="w-5 h-5 text-purple-400" /> Yangi Salon Qo'shish</h3>
+
+            {!newSalonResult ? (
+              <form onSubmit={handleAddSalon} className="space-y-4">
+                <div>
+                  <label className="text-sm text-gray-400 mb-1 block">Salon nomi</label>
+                  <input type="text" required value={newSalonForm.name}
+                    onChange={e => setNewSalonForm(f => ({ ...f, name: e.target.value }))}
+                    placeholder="Masalan: Barbershop 23"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-purple-500" />
+                </div>
+                <div>
+                  <label className="text-sm text-gray-400 mb-1 block">Egasining Telegram ID</label>
+                  <input type="number" required value={newSalonForm.owner_tg_id}
+                    onChange={e => setNewSalonForm(f => ({ ...f, owner_tg_id: e.target.value }))}
+                    placeholder="Masalan: 6713025920"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-purple-500" />
+                </div>
+                <button type="submit" className="w-full py-3 bg-gradient-to-r from-purple-500 to-purple-700 text-white font-bold rounded-xl hover:brightness-110 transition">
+                  Yaratish
+                </button>
+              </form>
+            ) : (
+              <div className="space-y-4">
+                <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4">
+                  <p className="text-green-400 font-bold mb-1">✅ Salon yaratildi!</p>
+                  <p className="text-white font-medium">{newSalonResult.name}</p>
+                </div>
+                <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+                  <p className="text-gray-400 text-xs mb-2 uppercase tracking-wider">TENANT_ID (Vercel env uchun)</p>
+                  <div className="flex items-center gap-2">
+                    <code className="text-purple-300 font-mono text-sm flex-1 break-all">{newSalonResult.id}</code>
+                    <button onClick={() => navigator.clipboard.writeText(newSalonResult.id)}
+                      className="flex-shrink-0 p-2 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 transition">
+                      <Copy className="w-4 h-4 text-purple-300" />
+                    </button>
+                  </div>
+                </div>
+                <p className="text-gray-400 text-xs">Vercel da yangi project yarating va <code className="text-purple-300">VITE_TENANT_ID</code> ga shu UUID ni qo'ying.</p>
+                <button onClick={() => setActiveModal(null)}
+                  className="w-full py-3 bg-white/10 border border-white/20 rounded-xl text-white font-medium hover:bg-white/20 transition">
+                  Yopish
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* MODAL: SALON TARIFI */}
       {activeModal === 'salon_tariff' && selectedSalon && (

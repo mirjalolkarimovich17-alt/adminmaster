@@ -29,7 +29,7 @@ function buildSlots(date, startTime, endTime, bookedRanges) {
   return slots
 }
 
-export default function ManualBooking() {
+export default function ManualBooking({ ownerMode = false }) {
   const navigate = useNavigate()
   const today = new Date().toISOString().slice(0, 10)
 
@@ -124,7 +124,7 @@ export default function ManualBooking() {
     setSubmitting(false)
     if (err) { setError(err.message); return }
     setSuccess(true)
-    setTimeout(() => navigate('/barber'), 1500)
+    setTimeout(() => navigate(ownerMode ? '/owner' : '/barber'), 1500)
   }
 
   const fmt = (d) => d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -149,7 +149,7 @@ export default function ManualBooking() {
   )
 
   return (
-    <Layout title="Qo'lda navbat" back={() => navigate('/barber')}>
+    <Layout title="Qo'lda navbat" back={() => navigate(ownerMode ? '/owner' : '/barber')}>
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
 
         {/* Usta */}

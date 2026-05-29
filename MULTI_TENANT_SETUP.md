@@ -1,55 +1,53 @@
-# Multi-Tenant Salon Setup Guide
+# Multi-Tenant Deploy Qo'llanmasi
 
-## 1. Database Migration
+## Arxitektura
 
-Run this SQL in Supabase SQL Editor:
+Bitta GitHub repo → har salon uchun alohida Vercel project.
+Faqat `VITE_TENANT_ID` env variable farq qiladi.
 
+## Yangi Salon Qo'shish (Qadamlar)
+
+### 1. SuperAdmin panelida salon yaratish
+- `/superadmin` ga kiring
+- "Yangi Salon" tugmasini bosing
+- Salon nomi va egasining Telegram ID sini kiriting
+- Yaratilgandan keyin **TENANT_ID (UUID)** ni nusxa oling
+
+### 2. Vercel da yangi project yaratish
+1. vercel.com → "Add New Project"
+2. Shu GitHub reponi import qiling
+3. **Environment Variables** ga qo'shing:
+   ```
+   VITE_SUPABASE_URL      = (bir xil barcha salonlar uchun)
+   VITE_SUPABASE_ANON_KEY = (bir xil barcha salonlar uchun)
+   VITE_TENANT_ID         = <nusxa olingan UUID>
+   ```
+4. Deploy qiling → Vercel URL oling
+
+### 3. Telegram Bot sozlash
+1. @BotFather da yangi bot yarating
+2. `/newapp` → Mini App URL ga Vercel URL ni kiriting
+3. Salon egasiga bot linkini yuboring
+
+### 4. Salon egasini belgilash
+Supabase SQL Editor:
 ```sql
-ALTER TABLE barbershops 
-ADD COLUMN IF NOT EXISTS slug TEXT UNIQUE,
-ADD COLUMN IF NOT EXISTS theme_color TEXT DEFAULT '#ffcc00',
-ADD COLUMN IF NOT EXISTS logo TEXT;
-
-UPDATE barbershops 
-SET slug = LOWER(REPLACE(name, ' ', '-')) || '-' || id
-WHERE slug IS NULL;
+UPDATE barbershops SET owner_tg_id = <tg_id> WHERE id = '<uuid>';
 ```
 
-## 2. Add New Salon
+---
 
-In Supabase `barbershops` table, insert:
+## Rollar
 
-| Column | Value |
-|--------|-------|
-| `name` | "Ali Sartaroshxona" |
-| `slug` | `ali-sartaroshxona-123` (unique) |
-| `theme_color` | `#ffcc00` (gold) |
-| `logo` | `https://example.com/logo.png` (optional) |
-| `is_active` | `true` |
-| `subscription_plan_id` | (existing plan ID) |
+| Rol | Yo'l | Kirish |
+|-----|------|--------|
+| SuperAdmin | `/superadmin` | Hardcoded TG ID |
+| Owner (salon egasi) | `/owner` | `barbershops.owner_tg_id` |
+| Barber | `/barber` | `barbers.tg_id` |
+| Client | `/client` | Barchaga |
 
-## 3. Access Salon
+## Hozirgi Salonlar
 
-Open in Telegram Mini App:
-```
-https://your-app.com/client/ali-sartaroshxona-123
-```
-
-Or via bot link:
-```
-t.me/yourbot?start=ali-sartaroshxona-123
-```
-
-## 4. Configure Salon
-
-Each salon has:
-- **Unique URL:** `/client/{slug}`
-- **Custom logo** (from `barbershops.logo`)
-- **Custom theme color** (from `barbershops.theme_color`)
-- **Own barbers & services** (filtered by `tenant_id`)
-
-## 5. SuperAdmin Panel
-
-Still at: `/superadmin`
-
-Manages all salons, plans, and limits.
+| Salon | TENANT_ID | Owner TG ID |
+|-------|-----------|-------------|
+| Barbershop 23 | ae478bfc-b1e2-419d-a306-572da573461f | 6713025920 |

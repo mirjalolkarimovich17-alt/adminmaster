@@ -99,8 +99,8 @@ export default function App() {
 
         {/* Owner routes (salon egasi) */}
         <Route path="/owner" element={<Dashboard ownerMode />} />
-        <Route path="/owner/booking" element={<ManualBooking />} />
-        <Route path="/owner/slots" element={<SlotManager />} />
+        <Route path="/owner/booking" element={<ManualBooking ownerMode />} />
+        <Route path="/owner/slots" element={<SlotManager ownerMode />} />
 
         {/* SuperAdmin routes */}
         <Route path="/superadmin" element={<SuperAdminDashboard />} />
