@@ -91,8 +91,7 @@ function BarberModal({ barber, shopId, onClose, onSaved }) {
     const payload = { name: form.name.trim(), tg_id: form.tg_id ? Number(form.tg_id) : null, daily_start_time: form.daily_start_time, daily_end_time: form.daily_end_time, tenant_id: shopId }
     const { data, error } = barber
       ? await supabase.from('barbers').update(payload).eq('id', barber.id).select().single()
-      : await supabase.from('barbers').insert({ ...payload, is_active: true }).select().single()
-    setSaving(false)
+      : await supabase.from('barbers').insert({ ...payload, is_active: true }).select().single()    setSaving(false)
     if (error) { setErr(error.message); return }
     onSaved(data, !!barber); onClose()
   }
@@ -310,12 +309,12 @@ export default function BarberDashboard({ ownerMode = false }) {
       {barberModal && (
         <BarberModal barber={barberModal === 'new' ? null : barberModal} shopId={shopId}
           onClose={() => setBarberModal(null)}
-          onSaved={(data, isEdit) => { setBarbers(prev => isEdit ? prev.map(b => b.id === data.id ? data : b) : [...prev, data]); setBarberModal(null) }} />
+          onSaved={(data, isEdit) => setBarbers(prev => isEdit ? prev.map(b => b.id === data.id ? data : b) : [...prev, data])} />
       )}
       {serviceModal && (
         <ServiceModal service={serviceModal === 'new' ? null : serviceModal} shopId={shopId}
           onClose={() => setServiceModal(null)}
-          onSaved={(data, isEdit) => { setServices(prev => isEdit ? prev.map(s => s.id === data.id ? data : s) : [...prev, data]); setServiceModal(null) }} />
+          onSaved={(data, isEdit) => setServices(prev => isEdit ? prev.map(s => s.id === data.id ? data : s) : [...prev, data])} />
       )}
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
