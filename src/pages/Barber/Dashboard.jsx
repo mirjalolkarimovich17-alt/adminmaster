@@ -199,7 +199,7 @@ export default function BarberDashboard({ ownerMode = false }) {
   }, [])
 
   async function removeBarber(id) {
-    await supabase.from('barbers').update({ is_active: false }).eq('id', id)
+    await supabase.from('barbers').delete().eq('id', id)
     setBarbers(prev => prev.filter(b => b.id !== id))
   }
   async function removeService(id) {
