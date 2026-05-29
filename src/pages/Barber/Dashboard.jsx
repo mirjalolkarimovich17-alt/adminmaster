@@ -178,21 +178,19 @@ export default function BarberDashboard({ ownerMode = false }) {
       if (ownerMode) {
         const tgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id
           ?? Number(localStorage.getItem('tg_id'))
-        const { data: owned, error: ownErr } = await supabase
+        const { data: owned } = await supabase
           .from('barbershops').select('id').eq('owner_tg_id', tgId).maybeSingle()
-        alert(`tgId=${tgId} owned=${owned?.id} err=${ownErr?.message}`)
         if (owned?.id) sid = owned.id
       }
 
       if (!sid) { setLoading(false); return }
       setShopId(sid)
 
-      const [{ data: s }, { data: b, error: bErr }, { data: sv }] = await Promise.all([
+      const [{ data: s }, { data: b }, { data: sv }] = await Promise.all([
         supabase.from('barbershops').select('id,name,is_active,subscription_expires_at,subscription_plan_id').eq('id', sid).single(),
-        supabase.from('barbers').select('*').eq('tenant_id', sid).eq('is_active', true).order('created_at'),
+        supabase.from('barbers').select('*').eq('tenant_id', sid).order('created_at'),
         supabase.from('services').select('*').eq('tenant_id', sid).order('created_at'),
       ])
-      alert(`barbers=${b?.length} err=${bErr?.message} sid=${sid}`)
       setShop(s); setBarbers(b ?? []); setServices(sv ?? [])
       const active = s?.subscription_plan_id && s?.subscription_expires_at && new Date(s.subscription_expires_at) > new Date()
       setPaid(!!active)
