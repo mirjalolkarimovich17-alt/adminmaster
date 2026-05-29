@@ -1,12 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../config/supabaseClient';
 
-const PLAN_FEATURES = {
-  STANDARD: ['1 Salon', 'Cheksiz navbatlar', 'SMS xabarnomalar'],
-  PREMIUM: ['3 Salon', 'Ustalar statistikasi', 'CRM boshqaruv', 'SMS xabarnomalar'],
-  VIP: ['Cheksiz salonlar', 'Shaxsiy menejer', '24/7 Support', 'Barcha imkoniyatlar']
-};
-
 export default function SuperAdmin() {
   const [salons, setSalons] = useState([]);
   const [plans, setPlans] = useState([]);
@@ -24,7 +18,7 @@ export default function SuperAdmin() {
     setLoading(true);
     const [salonsRes, plansRes] = await Promise.all([
       supabase.from('barbershops').select('*'),
-      supabase.from('subscription_plans').select('*')
+      supabase.from('subscription_plans').select('*').order('price', { ascending: true })
     ]);
     if (salonsRes.data) setSalons(salonsRes.data);
     if (plansRes.data) setPlans(plansRes.data);
@@ -77,17 +71,17 @@ export default function SuperAdmin() {
       </h1>
 
       {/* UMUMIY STATISTIKA */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
         <div className="bg-white/5 border border-white/10 rounded-xl p-5">
           <p className="text-gray-400 text-sm">Jami Salonlar</p>
           <p className="text-2xl font-bold mt-1">{salons.length}</p>
         </div>
         <div className="bg-white/5 border border-white/10 rounded-xl p-5">
-          <p className="text-gray-400 text-sm">Faol Salonlar</p>
+          <p className="text-gray-400 text-sm">Faol</p>
           <p className="text-2xl font-bold mt-1 text-green-400">{activeSalons}</p>
         </div>
         <div className="bg-white/5 border border-white/10 rounded-xl p-5">
-          <p className="text-gray-400 text-sm">Nofaol Salonlar</p>
+          <p className="text-gray-400 text-sm">Nofaol</p>
           <p className="text-2xl font-bold mt-1 text-red-400">{inactiveSalons}</p>
         </div>
         <div className="bg-white/5 border border-white/10 rounded-xl p-5">
@@ -142,25 +136,27 @@ export default function SuperAdmin() {
         )}
       </div>
 
-      {/* TARIF KARTALARI (XUSUSIYATLAR BILAN) */}
+      {/* TARIF REJALARI */}
       <h2 className="text-xl font-semibold mb-4 text-[#ffcc00]">TARIF REJALARI</h2>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {plans.map(plan => (
-          <div key={plan.id} className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 shadow-xl flex flex-col justify-between">
+          <div key={plan.id} className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-5 shadow-xl flex flex-col justify-between">
             <div>
-              <h3 className="text-lg font-bold uppercase tracking-wider text-gray-400">{plan.name}</h3>
-              <p className="text-3xl font-extrabold my-3 text-[#ffcc00]">{Number(plan.price || 0).toLocaleString()} UZS<span className="text-sm text-gray-400 font-normal"> /oy</span></p>
-              <ul className="mt-3 space-y-2">
-                {(PLAN_FEATURES[plan.name] || []).map((feature, i) => (
-                  <li key={i} className="flex items-center gap-2 text-sm text-gray-300">
-                    <span className="text-green-400">✓</span> {feature}
-                  </li>
-                ))}
-              </ul>
+              <h3 className="text-lg font-bold uppercase tracking-wider text-white">{plan.name}</h3>
+              <p className="text-2xl font-extrabold my-2 text-[#ffcc00]">{Number(plan.price || 0).toLocaleString()} <span className="text-sm text-gray-400 font-normal">UZS/oy</span></p>
+              <p className="text-xs text-gray-400 mb-3">{plan.description}</p>
+              <div className="space-y-1.5 text-sm">
+                <div className="flex items-center gap-2 text-gray-300">
+                  <span className="text-blue-400">📩</span> SMS: <span className="text-white font-semibold">{plan.sms_limit} ta</span>
+                </div>
+                <div className="flex items-center gap-2 text-gray-300">
+                  <span className="text-green-400">📞</span> Qo'ng'iroq: <span className="text-white font-semibold">{plan.call_limit} ta</span>
+                </div>
+              </div>
             </div>
             <button
               onClick={() => { setEditingPlan(plan); setCustomPriceInput(String(plan.price || '')); setActiveModal('global_price'); }}
-              className="mt-5 w-full py-2 rounded-xl bg-purple-600/30 border border-purple-500/50 hover:bg-purple-600/50 transition font-medium"
+              className="mt-4 w-full py-2 rounded-xl bg-purple-600/30 border border-purple-500/50 hover:bg-purple-600/50 transition font-medium text-sm"
             >
               Narxni Tahrirlash
             </button>
@@ -183,7 +179,7 @@ export default function SuperAdmin() {
               >
                 <option value="" className="bg-[#120720]">— Tanlang —</option>
                 {plans.map(p => (
-                  <option key={p.id} value={p.id} className="bg-[#120720]">{p.name}</option>
+                  <option key={p.id} value={p.id} className="bg-[#120720]">{p.name} — {Number(p.price).toLocaleString()} UZS</option>
                 ))}
               </select>
               <button type="submit" className="w-full py-3 bg-gradient-to-r from-amber-500 to-yellow-600 text-black font-bold rounded-xl shadow-lg hover:brightness-110 transition">
