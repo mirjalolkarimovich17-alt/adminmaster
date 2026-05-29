@@ -19,7 +19,7 @@ const inp = {
   color: '#fff', outline: 'none', borderRadius: 12, boxSizing: 'border-box',
 }
 
-// ── Paywall ───────────────────────────────────────────────────
+// в”Ђв”Ђ Paywall в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 const PLANS = [
   { name: 'STANDARD', price: '200,000', features: ['Cheksiz navbatlar', 'SMS xabarnomalar'], accent: 'rgba(255,255,255,0.7)' },
   { name: 'PREMIUM',  price: '500,000', features: ['Ustalar statistikasi', 'CRM boshqaruv'], accent: GOLD, badge: 'Mashhur' },
@@ -53,7 +53,7 @@ function Paywall() {
                   {p.badge && <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 20, background: `${p.accent}18`, color: p.accent, border: `1px solid ${p.accent}30` }}>{p.badge}</span>}
                 </div>
                 <p style={{ margin: '0 0 6px', fontSize: 18, fontWeight: 700, color: p.accent }}>{p.price} <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', fontWeight: 400 }}>UZS/oy</span></p>
-                {p.features.map(f => <p key={f} style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>· {f}</p>)}
+                {p.features.map(f => <p key={f} style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>В· {f}</p>)}
               </div>
               <button onClick={() => pay(p.name)} style={{ flexShrink: 0, padding: '10px 16px', borderRadius: 12, fontSize: 12, fontWeight: 600, cursor: 'pointer', background: `${p.accent}15`, color: p.accent, border: `1px solid ${p.accent}35` }}>
                 To'lov
@@ -66,14 +66,14 @@ function Paywall() {
   )
 }
 
-// ── Modal ─────────────────────────────────────────────────────
+// в”Ђв”Ђ Modal в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 function Modal({ title, onClose, children }) {
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)' }}>
       <div style={{ ...G.card, border: `1px solid ${PURPLE}35`, borderRadius: '24px 24px 0 0', padding: 24, width: '100%', maxWidth: 480, display: 'flex', flexDirection: 'column', gap: 14, paddingBottom: 36 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: '#fff' }}>{title}</h3>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 22, cursor: 'pointer', lineHeight: 1 }}>✕</button>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 22, cursor: 'pointer', lineHeight: 1 }}>вњ•</button>
         </div>
         {children}
       </div>
@@ -116,7 +116,7 @@ function BarberModal({ barber, shopId, onClose, onSaved }) {
       {err && <p style={{ color: '#f87171', fontSize: 12, margin: 0 }}>{err}</p>}
       <button onClick={save} disabled={saving || !form.name.trim()}
         style={{ padding: '13px', borderRadius: 14, fontSize: 13, fontWeight: 600, cursor: 'pointer', background: `${PURPLE}20`, color: PURPLE, border: `1px solid ${PURPLE}40`, opacity: saving ? 0.6 : 1 }}>
-        {saving ? 'Saqlanmoqda…' : 'Saqlash'}
+        {saving ? 'SaqlanmoqdaвЂ¦' : 'Saqlash'}
       </button>
     </Modal>
   )
@@ -153,13 +153,13 @@ function ServiceModal({ service, shopId, onClose, onSaved }) {
       {err && <p style={{ color: '#f87171', fontSize: 12, margin: 0 }}>{err}</p>}
       <button onClick={save} disabled={saving || !form.name.trim() || !form.price}
         style={{ padding: '13px', borderRadius: 14, fontSize: 13, fontWeight: 600, cursor: 'pointer', background: `${GOLD}18`, color: GOLD, border: `1px solid ${GOLD}35`, opacity: saving ? 0.6 : 1 }}>
-        {saving ? 'Saqlanmoqda…' : 'Saqlash'}
+        {saving ? 'SaqlanmoqdaвЂ¦' : 'Saqlash'}
       </button>
     </Modal>
   )
 }
 
-// ── Main ──────────────────────────────────────────────────────
+// в”Ђв”Ђ Main в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 export default function BarberDashboard({ ownerMode = false }) {
   const navigate = useNavigate()
   const [shop, setShop] = useState(null)
@@ -253,7 +253,7 @@ export default function BarberDashboard({ ownerMode = false }) {
         {/* Barbers */}
         <div style={{ ...G.card, padding: 18, marginBottom: 14 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <p style={{ margin: 0, fontSize: 11, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)' }}>Ustalar · {barbers.length}</p>
+            <p style={{ margin: 0, fontSize: 11, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)' }}>Ustalar В· {barbers.length}</p>
             <button onClick={() => setBarberModal('new')}
               style={{ fontSize: 12, fontWeight: 600, padding: '7px 14px', borderRadius: 10, cursor: 'pointer', background: `${PURPLE}15`, color: PURPLE, border: `1px solid ${PURPLE}30` }}>
               + Qo'shish
@@ -271,7 +271,7 @@ export default function BarberDashboard({ ownerMode = false }) {
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.name}</p>
-                  <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>{b.daily_start_time?.slice(0,5)} – {b.daily_end_time?.slice(0,5)}</p>
+                  <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>{b.daily_start_time?.slice(0,5)} вЂ“ {b.daily_end_time?.slice(0,5)}</p>
                 </div>
                 <button onClick={() => setBarberModal(b)} style={{ fontSize: 11, padding: '6px 11px', borderRadius: 9, cursor: 'pointer', background: `${PURPLE}12`, color: PURPLE, border: `1px solid ${PURPLE}28`, flexShrink: 0 }}>Tahrir</button>
                 <button onClick={() => removeBarber(b.id)} style={{ fontSize: 11, padding: '6px 11px', borderRadius: 9, cursor: 'pointer', background: 'rgba(248,113,113,0.08)', color: '#f87171', border: '1px solid rgba(248,113,113,0.2)', flexShrink: 0 }}>O'chir</button>
@@ -283,7 +283,7 @@ export default function BarberDashboard({ ownerMode = false }) {
         {/* Services */}
         <div style={{ ...G.card, padding: 18 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <p style={{ margin: 0, fontSize: 11, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)' }}>Xizmatlar · {services.length}</p>
+            <p style={{ margin: 0, fontSize: 11, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)' }}>Xizmatlar В· {services.length}</p>
             <button onClick={() => setServiceModal('new')}
               style={{ fontSize: 12, fontWeight: 600, padding: '7px 14px', borderRadius: 10, cursor: 'pointer', background: `${GOLD}12`, color: GOLD, border: `1px solid ${GOLD}28` }}>
               + Qo'shish
