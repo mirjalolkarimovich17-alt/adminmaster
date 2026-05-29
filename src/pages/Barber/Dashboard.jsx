@@ -232,7 +232,7 @@ function SecHead({ title, onAdd }) {
 }
 
 // ── Main Dashboard ────────────────────────────────────────────
-export default function BarberDashboard() {
+export default function BarberDashboard({ ownerMode = false }) {
   const navigate = useNavigate()
   const [shop, setShop] = useState(null)
   const [barbers, setBarbers] = useState([])
@@ -246,10 +246,25 @@ export default function BarberDashboard() {
 
   useEffect(() => {
     async function load() {
+      let shopId = TENANT_ID
+
+      if (ownerMode) {
+        const tgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id
+          ?? Number(localStorage.getItem('tg_id'))
+        const { data: owned } = await supabase
+          .from('barbershops')
+          .select('id')
+          .eq('owner_tg_id', tgId)
+          .maybeSingle()
+        shopId = owned?.id
+      }
+
+      if (!shopId) { setLoading(false); return }
+
       const [{ data: s }, { data: b }, { data: sv }] = await Promise.all([
-        supabase.from('barbershops').select('id,name,is_active,subscription_expires_at,subscription_plan_id').eq('id', TENANT_ID).single(),
-        supabase.from('barbers').select('*').eq('tenant_id', TENANT_ID).order('created_at'),
-        supabase.from('services').select('*').eq('tenant_id', TENANT_ID).order('created_at'),
+        supabase.from('barbershops').select('id,name,is_active,subscription_expires_at,subscription_plan_id').eq('id', shopId).single(),
+        supabase.from('barbers').select('*').eq('tenant_id', shopId).order('created_at'),
+        supabase.from('services').select('*').eq('tenant_id', shopId).order('created_at'),
       ])
       setShop(s)
       setBarbers(b ?? [])

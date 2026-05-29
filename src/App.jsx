@@ -18,12 +18,14 @@ async function resolveRole(tgId) {
   if (!tgId) return 'client'
   if (tgId === OWNER_ID) return 'superadmin'
 
-  const [{ data: admin }, { data: barber }] = await Promise.all([
+  const [{ data: admin }, { data: barber }, { data: ownedShop }] = await Promise.all([
     supabase.from('superadmin').select('tg_id').eq('tg_id', tgId).maybeSingle(),
     supabase.from('barbers').select('id').eq('tg_id', tgId).eq('is_active', true).maybeSingle(),
+    supabase.from('barbershops').select('id').eq('owner_tg_id', tgId).maybeSingle(),
   ])
 
   if (admin) return 'superadmin'
+  if (ownedShop) return 'owner'
   if (barber) return 'barber'
   return 'client'
 }
@@ -70,7 +72,7 @@ function RoleGate() {
 
   if (!role) return <RoleLoader />
 
-  const dest = { superadmin: '/superadmin', barber: '/barber', client: '/client' }
+  const dest = { superadmin: '/superadmin', owner: '/owner', barber: '/barber', client: '/client' }
   return <Navigate to={dest[role]} replace />
 }
 
@@ -94,6 +96,11 @@ export default function App() {
         <Route path="/barber" element={<Dashboard />} />
         <Route path="/barber/booking" element={<ManualBooking />} />
         <Route path="/barber/slots" element={<SlotManager />} />
+
+        {/* Owner routes (salon egasi) */}
+        <Route path="/owner" element={<Dashboard ownerMode />} />
+        <Route path="/owner/booking" element={<ManualBooking />} />
+        <Route path="/owner/slots" element={<SlotManager />} />
 
         {/* SuperAdmin routes */}
         <Route path="/superadmin" element={<SuperAdminDashboard />} />
