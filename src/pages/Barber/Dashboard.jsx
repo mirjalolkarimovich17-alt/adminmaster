@@ -291,7 +291,7 @@ export default function BarberDashboard({ ownerMode = false }) {
     </div>
   )
 
-  if (!paid) return <Paywall onActivate={() => setPaid(true)} />
+  if (!paid && ownerMode) return <Paywall onActivate={() => setPaid(true)} />
 
   return (
     <div style={{ minHeight: '100vh', background: BG, color: '#fff', fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif' }}>
