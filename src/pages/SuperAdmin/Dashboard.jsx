@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../config/supabaseClient';
 
+const PLAN_FEATURES = {
+  STANDARD: ['1 Salon', 'Cheksiz navbatlar', 'SMS xabarnomalar'],
+  PREMIUM: ['3 Salon', 'Ustalar statistikasi', 'CRM boshqaruv', 'SMS xabarnomalar'],
+  VIP: ['Cheksiz salonlar', 'Shaxsiy menejer', '24/7 Support', 'Barcha imkoniyatlar']
+};
+
 export default function SuperAdmin() {
   const [salons, setSalons] = useState([]);
   const [plans, setPlans] = useState([]);
@@ -12,9 +18,7 @@ export default function SuperAdmin() {
   const [editingPlan, setEditingPlan] = useState(null);
   const [customPriceInput, setCustomPriceInput] = useState('');
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  useEffect(() => { fetchData(); }, []);
 
   const fetchData = async () => {
     setLoading(true);
@@ -32,7 +36,6 @@ export default function SuperAdmin() {
     return plan ? plan.name : '—';
   };
 
-  // Salon tarifini yangilash (UUID bilan)
   const handleUpdateSalonTariff = async (e) => {
     e.preventDefault();
     if (!selectedSalon || !tariffInput) return;
@@ -40,16 +43,10 @@ export default function SuperAdmin() {
       .from('barbershops')
       .update({ subscription_plan_id: tariffInput })
       .eq('id', selectedSalon.id);
-    if (error) {
-      alert(`❌ Xatolik: ${error.message}`);
-    } else {
-      alert('✅ Salon tarifi yangilandi!');
-      setActiveModal(null);
-      fetchData();
-    }
+    if (error) alert(`❌ Xatolik: ${error.message}`);
+    else { alert('✅ Salon tarifi yangilandi!'); setActiveModal(null); fetchData(); }
   };
 
-  // Salonni faollashtirish/o'chirish
   const handleToggleActive = async (salon) => {
     const { error } = await supabase
       .from('barbershops')
@@ -59,7 +56,6 @@ export default function SuperAdmin() {
     else alert(`❌ Xatolik: ${error.message}`);
   };
 
-  // Plan narxini yangilash (subscription_plans jadvalida)
   const handleUpdatePrice = async (e) => {
     e.preventDefault();
     if (!editingPlan) return;
@@ -67,14 +63,12 @@ export default function SuperAdmin() {
       .from('subscription_plans')
       .update({ price: Number(customPriceInput.replace(/\D/g, '')) })
       .eq('id', editingPlan.id);
-    if (error) {
-      alert(`❌ Xatolik: ${error.message}`);
-    } else {
-      alert('✅ Narx yangilandi!');
-      setActiveModal(null);
-      fetchData();
-    }
+    if (error) alert(`❌ Xatolik: ${error.message}`);
+    else { alert('✅ Narx yangilandi!'); setActiveModal(null); fetchData(); }
   };
+
+  const activeSalons = salons.filter(s => s.is_active).length;
+  const inactiveSalons = salons.filter(s => !s.is_active).length;
 
   return (
     <div className="min-h-screen bg-gradient-to-tr from-[#0a0512] via-[#120720] to-[#1a0b2e] text-white p-6 font-sans">
@@ -82,7 +76,27 @@ export default function SuperAdmin() {
         SuperAdmin Paneli
       </h1>
 
-      {/* SALONLAR */}
+      {/* UMUMIY STATISTIKA */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+        <div className="bg-white/5 border border-white/10 rounded-xl p-5">
+          <p className="text-gray-400 text-sm">Jami Salonlar</p>
+          <p className="text-2xl font-bold mt-1">{salons.length}</p>
+        </div>
+        <div className="bg-white/5 border border-white/10 rounded-xl p-5">
+          <p className="text-gray-400 text-sm">Faol Salonlar</p>
+          <p className="text-2xl font-bold mt-1 text-green-400">{activeSalons}</p>
+        </div>
+        <div className="bg-white/5 border border-white/10 rounded-xl p-5">
+          <p className="text-gray-400 text-sm">Nofaol Salonlar</p>
+          <p className="text-2xl font-bold mt-1 text-red-400">{inactiveSalons}</p>
+        </div>
+        <div className="bg-white/5 border border-white/10 rounded-xl p-5">
+          <p className="text-gray-400 text-sm">Tarif Turlari</p>
+          <p className="text-2xl font-bold mt-1 text-purple-400">{plans.length}</p>
+        </div>
+      </div>
+
+      {/* SALONLAR JADVALI */}
       <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 shadow-2xl mb-12">
         <h2 className="text-xl font-semibold mb-4 text-[#ffcc00]">SALONLAR BOSHQARUVI</h2>
         {loading ? <p className="text-gray-400">Yuklanmoqda...</p> : (
@@ -108,22 +122,14 @@ export default function SuperAdmin() {
                     </td>
                     <td className="p-3 flex gap-2 flex-wrap">
                       <button
-                        onClick={() => {
-                          setSelectedSalon(salon);
-                          setTariffInput(salon.subscription_plan_id || '');
-                          setActiveModal('salon_tariff');
-                        }}
+                        onClick={() => { setSelectedSalon(salon); setTariffInput(salon.subscription_plan_id || ''); setActiveModal('salon_tariff'); }}
                         className="px-3 py-1.5 rounded-lg bg-white/10 border border-white/20 hover:bg-white/20 text-sm transition"
                       >
                         Tarifni o'zgartirish
                       </button>
                       <button
                         onClick={() => handleToggleActive(salon)}
-                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
-                          salon.is_active
-                            ? 'bg-red-500/20 border border-red-500/40 hover:bg-red-500/30 text-red-300'
-                            : 'bg-green-500/20 border border-green-500/40 hover:bg-green-500/30 text-green-300'
-                        }`}
+                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${salon.is_active ? 'bg-red-500/20 border border-red-500/40 hover:bg-red-500/30 text-red-300' : 'bg-green-500/20 border border-green-500/40 hover:bg-green-500/30 text-green-300'}`}
                       >
                         {salon.is_active ? "O'chirish" : 'Faollashtirish'}
                       </button>
@@ -136,21 +142,25 @@ export default function SuperAdmin() {
         )}
       </div>
 
-      {/* TARIF KARTALARI */}
+      {/* TARIF KARTALARI (XUSUSIYATLAR BILAN) */}
+      <h2 className="text-xl font-semibold mb-4 text-[#ffcc00]">TARIF REJALARI</h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {plans.map(plan => (
           <div key={plan.id} className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 shadow-xl flex flex-col justify-between">
             <div>
               <h3 className="text-lg font-bold uppercase tracking-wider text-gray-400">{plan.name}</h3>
-              <p className="text-3xl font-extrabold my-4 text-[#ffcc00]">{Number(plan.price || 0).toLocaleString()} UZS</p>
+              <p className="text-3xl font-extrabold my-3 text-[#ffcc00]">{Number(plan.price || 0).toLocaleString()} UZS<span className="text-sm text-gray-400 font-normal"> /oy</span></p>
+              <ul className="mt-3 space-y-2">
+                {(PLAN_FEATURES[plan.name] || []).map((feature, i) => (
+                  <li key={i} className="flex items-center gap-2 text-sm text-gray-300">
+                    <span className="text-green-400">✓</span> {feature}
+                  </li>
+                ))}
+              </ul>
             </div>
             <button
-              onClick={() => {
-                setEditingPlan(plan);
-                setCustomPriceInput(String(plan.price || ''));
-                setActiveModal('global_price');
-              }}
-              className="mt-4 w-full py-2 rounded-xl bg-purple-600/30 border border-purple-500/50 hover:bg-purple-600/50 transition font-medium"
+              onClick={() => { setEditingPlan(plan); setCustomPriceInput(String(plan.price || '')); setActiveModal('global_price'); }}
+              className="mt-5 w-full py-2 rounded-xl bg-purple-600/30 border border-purple-500/50 hover:bg-purple-600/50 transition font-medium"
             >
               Narxni Tahrirlash
             </button>
