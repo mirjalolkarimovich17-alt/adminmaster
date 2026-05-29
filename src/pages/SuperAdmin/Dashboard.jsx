@@ -42,12 +42,20 @@ export default function SuperAdmin() {
     return plan ? plan.name : '—';
   };
 
+  const [expiresMonths, setExpiresMonths] = useState(1);
+
   const handleUpdateSalonTariff = async (e) => {
     e.preventDefault();
     if (!selectedSalon || !tariffInput) return;
-    const { error } = await supabase.from('barbershops').update({ subscription_plan_id: tariffInput }).eq('id', selectedSalon.id);
+    const expires = new Date();
+    expires.setMonth(expires.getMonth() + Number(expiresMonths));
+    const { error } = await supabase.from('barbershops').update({
+      subscription_plan_id: tariffInput,
+      is_active: true,
+      subscription_expires_at: expires.toISOString(),
+    }).eq('id', selectedSalon.id);
     if (error) alert(`❌ Xatolik: ${error.message}`);
-    else { alert('✅ Salon tarifi yangilandi!'); setActiveModal(null); fetchData(); }
+    else { setActiveModal(null); fetchData(); }
   };
 
   const handleAddSalon = async (e) => {
@@ -261,12 +269,15 @@ export default function SuperAdmin() {
             <form onSubmit={handleUpdateSalonTariff}>
               <label className="block text-sm text-gray-400 mb-2">Yangi Tarifni Tanlang</label>
               <select value={tariffInput} onChange={(e) => setTariffInput(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white mb-6 focus:outline-none focus:border-purple-500">
+                className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white mb-4 focus:outline-none focus:border-purple-500">
                 <option value="" className="bg-[#120720]">— Tanlang —</option>
                 {plans.map(p => <option key={p.id} value={p.id} className="bg-[#120720]">{p.name} — {Number(p.price).toLocaleString()} UZS</option>)}
               </select>
+              <label className="block text-sm text-gray-400 mb-2">Muddat (oy)</label>
+              <input type="number" min="1" max="24" value={expiresMonths} onChange={e => setExpiresMonths(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white mb-6 focus:outline-none focus:border-purple-500" />
               <button type="submit" className="w-full py-3 bg-gradient-to-r from-amber-500 to-yellow-600 text-black font-bold rounded-xl shadow-lg hover:brightness-110 transition inline-flex items-center justify-center gap-2">
-                <CheckCircle2 className="w-5 h-5" /> Tasdiqlash
+                <CheckCircle2 className="w-5 h-5" /> Tasdiqlash va Faollashtirish
               </button>
             </form>
           </div>

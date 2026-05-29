@@ -182,16 +182,19 @@ function BarberModal({ barber, shopId, onClose, onSaved }) {
 function ServiceModal({ service, shopId, onClose, onSaved }) {
   const [form, setForm] = useState({ name: service?.name ?? '', price: service?.price ?? '', duration_minutes: service?.duration_minutes ?? 30 })
   const [saving, setSaving] = useState(false)
+  const [err, setErr] = useState('')
 
   async function save() {
     setSaving(true)
+    setErr('')
     const tenantId = shopId || TENANT_ID
     const payload = { name: form.name.trim(), price: Number(form.price), duration_minutes: Number(form.duration_minutes), tenant_id: tenantId }
     const { data, error } = service
       ? await supabase.from('services').update(payload).eq('id', service.id).select().single()
       : await supabase.from('services').insert(payload).select().single()
     setSaving(false)
-    if (!error) { onSaved(data, !!service); onClose() }
+    if (error) { setErr(error.message); return }
+    onSaved(data, !!service); onClose()
   }
 
   return (
@@ -210,6 +213,7 @@ function ServiceModal({ service, shopId, onClose, onSaved }) {
         <GBtn onClick={save} disabled={saving || !form.name.trim() || !form.price} accent={GOLD}>
           {saving ? 'Saqlanmoqda…' : 'Saqlash'}
         </GBtn>
+        {err && <p style={{ color: '#f87171', fontSize: 12, textAlign: 'center', margin: 0 }}>{err}</p>}
       </ModalBox>
     </Overlay>
   )
