@@ -1,646 +1,169 @@
-import { useState, useEffect, useCallback } from 'react'
-import { supabase } from '../../config/supabaseClient'
-import { Loader, SectionTitle, Btn, Select } from '../../components/UiKit'
+import React, { useState, useEffect } from 'react';
+import { supabase } from '../../supabaseClient';
 
-// ── Style tokens ──────────────────────────────────────────────
-const G = {
-  card: {
-    background: 'rgba(255,255,255,0.03)',
-    backdropFilter: 'blur(24px) saturate(160%)',
-    WebkitBackdropFilter: 'blur(24px) saturate(160%)',
-    border: '1px solid rgba(255,255,255,0.08)',
-    boxShadow: '0 30px 60px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.10)',
-    borderRadius: '20px',
-  },
-  cardGold: {
-    background: 'rgba(255,255,255,0.03)',
-    backdropFilter: 'blur(24px) saturate(160%)',
-    WebkitBackdropFilter: 'blur(24px) saturate(160%)',
-    border: '1px solid rgba(255,204,0,0.2)',
-    boxShadow: '0 30px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,204,0,0.06), inset 0 1px 0 rgba(255,255,255,0.10)',
-    borderRadius: '24px',
-  },
-}
+export default function SuperAdmin() {
+  const [salons, setSalons] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-// ── Float keyframes injected once ────────────────────────────
-const FLOAT_CSS = `
-@keyframes float {
-  0%,100% { transform: translateY(0px); }
-  50%      { transform: translateY(-6px); }
-}
-@keyframes floatB {
-  0%,100% { transform: translateY(0px); }
-  50%      { transform: translateY(-4px); }
-}
-`
+  const [prices, setPrices] = useState({
+    standard: 200000,
+    premium: 500000,
+    vip: 1000000
+  });
 
-// ── Metric Card ───────────────────────────────────────────────
-function Metric({ label, value, sub, delay = '0s', color = '#ffcc00' }) {
-  return (
-    <div style={{ ...G.card, padding: '24px 20px', display: 'flex', flexDirection: 'column', gap: 8, animation: `float 5s ease-in-out ${delay} infinite` }}>
-      <p style={{ fontSize: 10, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', margin: 0 }}>{label}</p>
-      <p style={{ fontSize: 32, fontWeight: 700, margin: 0, color, textShadow: `0 0 20px ${color}80, 0 0 40px ${color}30` }}>{value}</p>
-      {sub && <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', margin: 0 }}>{sub}</p>}
-    </div>
-  )
-}
+  const [activeModal, setActiveModal] = useState(null);
+  const [selectedSalon, setSelectedSalon] = useState(null);
+  const [tariffInput, setTariffInput] = useState('standard');
+  const [editingPlanKey, setEditingPlanKey] = useState('');
+  const [customPriceInput, setCustomPriceInput] = useState(0);
 
-// ── Plan row ──────────────────────────────────────────────────
-function PlanRow({ plan, onSave }) {
-  const [price, setPrice] = useState(String(plan.price))
-  const [saving, setSaving] = useState(false)
+  useEffect(() => {
+    fetchSalons();
+  }, []);
 
-  async function save() {
-    setSaving(true)
-    await supabase.from('subscription_plans').update({ price: Number(price) }).eq('id', plan.id)
-    onSave(plan.id, Number(price))
-    setSaving(false)
-  }
+  const fetchSalons = async () => {
+    setLoading(true);
+    const { data, error } = await supabase.from('barbershops').select('*');
+    if (!error && data) setSalons(data);
+    setLoading(false);
+  };
 
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-      <span style={{ flex: 1, fontSize: 13, color: '#fff', fontWeight: 500 }}>{plan.name}</span>
-      <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', minWidth: 110, textAlign: 'right' }}>
-        SMS {plan.sms_limit} / Call {plan.call_limit}
-      </span>
-      <input value={price} onChange={e => setPrice(e.target.value)}
-        style={{ ...G.card, width: 110, padding: '8px 12px', fontSize: 13, color: '#fff', textAlign: 'right', outline: 'none', borderRadius: 12 }} />
-      <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)' }}>UZS</span>
-      <button onClick={save} disabled={saving || Number(price) === plan.price}
-        style={{ padding: '8px 14px', borderRadius: 12, fontSize: 11, fontWeight: 600, cursor: 'pointer', transition: 'all .2s',
-          background: 'rgba(255,204,0,0.1)', color: '#ffcc00', border: '1px solid rgba(255,204,0,0.2)', opacity: (saving || Number(price) === plan.price) ? 0.3 : 1 }}>
-        {saving ? '…' : 'Saqlash'}
-      </button>
-    </div>
-  )
-}
+  const handleUpdateSalonTariff = async (e) => {
+    e.preventDefault();
+    if (!selectedSalon) return;
 
-// ── New Salon Modal ───────────────────────────────────────────
-function NewSalonModal({ plans, onClose, onCreated }) {
-  const [form, setForm] = useState({ name: '', owner: '', plan_id: plans[0]?.id ?? '' })
-  const [saving, setSaving] = useState(false)
-  const [err, setErr] = useState('')
+    const { error } = await supabase
+      .from('barbershops')
+      .update({ tariff: tariffInput })
+      .eq('id', selectedSalon.id);
 
-  async function save() {
-    if (!form.name.trim()) { setErr("Salon nomi kiritilmagan"); return }
-    setSaving(true)
-    const plan = plans.find(p => p.id === form.plan_id)
-    const expires = new Date(); expires.setDate(expires.getDate() + 30)
-    const { data, error } = await supabase.from('barbershops').insert({
-      name: form.name.trim(),
-      subscription_plan_id: plan?.id ?? null,
-      subscription_expires_at: expires.toISOString(),
-      sms_limit_remaining: plan?.sms_limit ?? 0,
-      call_limit_remaining: plan?.call_limit ?? 0,
-      is_active: true,
-    }).select('id,name,is_active,subscription_plan_id,subscription_expires_at,sms_limit_remaining,call_limit_remaining,subscription_plans(name,price,sms_limit,call_limit)').single()
-    setSaving(false)
     if (error) {
-      const msg = error.message ?? ''
-      setErr(
-        msg.toLowerCase().includes('row-level security') || msg.toLowerCase().includes('rls') || msg.toLowerCase().includes('policy')
-          ? '❌ Tizim xatoligi: Ma\'lumotlar bazasiga kirish taqiqlangan (RLS).'
-          : '❌ Nimadir noto\'g\'ri bajarildi. Iltimos qaytadan urunib ko\'ring.'
-      )
-      return
+      alert(`❌ Saqlashda xatolik: ${error.message}`);
+    } else {
+      alert("✅ Salon tarifi muvaffaqiyatli yangilandi!");
+      setActiveModal(null);
+      fetchSalons();
     }
-    onCreated(data); onClose()
-  }
+  };
 
-  const inp = { ...G.card, width: '100%', padding: '12px 14px', fontSize: 13, color: '#fff', outline: 'none', borderRadius: 14, boxSizing: 'border-box' }
-
-  return (
-    <Overlay>
-      <ModalBox title="Yangi Salon Qo'shish" onClose={onClose}>
-        <label style={LBL}>Salon nomi</label>
-        <input style={inp} placeholder="23 BRO BARBER" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
-        <label style={LBL}>Egasi ismi</label>
-        <input style={inp} placeholder="Abdulloh Karimov" value={form.owner} onChange={e => setForm(f => ({ ...f, owner: e.target.value }))} />
-        <label style={LBL}>Boshlang'ich tarif</label>
-        <select style={{ ...inp, background: '#0f0a1e' }} value={form.plan_id} onChange={e => setForm(f => ({ ...f, plan_id: e.target.value }))}>
-          {plans.map(p => <option key={p.id} value={p.id}>{p.name} — {p.price.toLocaleString()} UZS</option>)}
-        </select>
-        {err && (
-          <div style={{ padding: '10px 14px', borderRadius: 12, background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)', fontSize: 12, color: '#fca5a5', lineHeight: 1.5 }}>
-            {err}
-          </div>
-        )}
-        <Btn onClick={save} disabled={saving}>{saving ? 'Yaratilmoqda…' : 'Salon Yaratish'}</Btn>
-      </ModalBox>
-    </Overlay>
-  )
-}
-
-// ── Plan Edit Modal ───────────────────────────────────────────
-function PlanEditModal({ plan, onClose, onSaved }) {
-  const [form, setForm] = useState({ price: String(plan.price), sms_limit: String(plan.sms_limit), call_limit: String(plan.call_limit) })
-  const [saving, setSaving] = useState(false)
-
-  async function save() {
-    setSaving(true)
-    await supabase.from('subscription_plans').update({
-      price: Number(form.price), sms_limit: Number(form.sms_limit), call_limit: Number(form.call_limit),
-    }).eq('id', plan.id)
-    onSaved({ ...plan, price: Number(form.price), sms_limit: Number(form.sms_limit), call_limit: Number(form.call_limit) })
-    setSaving(false); onClose()
-  }
-
-  const inp = { ...G.card, width: '100%', padding: '12px 14px', fontSize: 13, color: '#fff', outline: 'none', borderRadius: 14, boxSizing: 'border-box' }
+  const handleUpdateGlobalPrice = (e) => {
+    e.preventDefault();
+    setPrices(prev => ({
+      ...prev,
+      [editingPlanKey]: Number(customPriceInput)
+    }));
+    alert("✅ Platforma tarifi narxi vaqtincha yangilandi!");
+    setActiveModal(null);
+  };
 
   return (
-    <Overlay>
-      <ModalBox title={`Tahrirash — ${plan.name}`} onClose={onClose}>
-        {[['Narx (UZS)', 'price'], ['SMS limiti', 'sms_limit'], ["Qo'ng'iroq limiti", 'call_limit']].map(([lbl, key]) => (
-          <div key={key} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <label style={LBL}>{lbl}</label>
-            <input style={inp} type="number" value={form[key]} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))} />
-          </div>
-        ))}
-        <Btn onClick={save} disabled={saving}>{saving ? 'Saqlanmoqda…' : 'Saqlash'}</Btn>
-      </ModalBox>
-    </Overlay>
-  )
-}
+    <div className="min-h-screen bg-gradient-to-tr from-[#0a0512] via-[#120720] to-[#1a0b2e] text-white p-6 font-sans">
+      <h1 className="text-3xl font-bold mb-8 tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">
+        SuperAdmin Paneli
+      </h1>
 
-// ── Shared modal primitives ───────────────────────────────────
-const LBL = { fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: 0 }
-
-function Overlay({ children }) {
-  return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
-      background: 'rgba(0,0,0,0.82)', backdropFilter: 'blur(12px)' }}>
-      {children}
-    </div>
-  )
-}
-
-function ModalBox({ title, onClose, children }) {
-  return (
-    <div style={{ ...G.cardGold, padding: 28, width: '100%', maxWidth: 400, display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h2 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: '#fff' }}>{title}</h2>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>✕</button>
+      <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 shadow-2xl mb-12">
+        <h2 className="text-xl font-semibold mb-4 text-[#ffcc00]">SALONLAR BOSHQARUVI</h2>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-white/10 text-gray-400 text-sm">
+                <th className="p-3">SALON</th>
+                <th className="p-3">TARIF</th>
+                <th className="p-3">AMAL</th>
+              </tr>
+            </thead>
+            <tbody>
+              {salons.map(salon => (
+                <tr key={salon.id} className="border-b border-white/5 hover:bg-white/5 transition">
+                  <td className="p-3 font-medium">{salon.name}</td>
+                  <td className="p-3 uppercase text-purple-400 font-bold">{salon.tariff || 'Yana'}</td>
+                  <td className="p-3">
+                    <button
+                      onClick={() => {
+                        setSelectedSalon(salon);
+                        setTariffInput(salon.tariff || 'standard');
+                        setActiveModal('salon_tariff');
+                      }}
+                      className="px-4 py-1.5 rounded-lg bg-white/10 border border-white/20 hover:bg-white/20 text-sm transition"
+                    >
+                      Tarifni o'zgartirish
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
-      {children}
-    </div>
-  )
-}
 
-// ── SalonEditModal — hardcoded tiers, instant render, no async ─
-const TIERS = [
-  { key: 'start',     label: 'START',     price: 45000,   sms: 100,  calls: 50  },
-  { key: 'standard',  label: 'STANDARD',  price: 75000,   sms: 300,  calls: 150 },
-  { key: 'premium',   label: 'PREMIUM',   price: 120000,  sms: 700,  calls: 350 },
-  { key: 'vip_brand', label: 'VIP BRAND', price: 190000,  sms: 1500, calls: 750 },
-]
-
-function SalonEditModal({ shop, dbPlans, onClose, onSaved }) {
-  // Try to match current plan to a tier key; fall back to first tier
-  const currentTierKey = dbPlans.find(p => p.id === shop.subscription_plan_id)?.name?.toLowerCase().replace(' ', '_') ?? TIERS[0].key
-  const [tierKey, setTierKey] = useState(currentTierKey)
-  const [saving, setSaving] = useState(false)
-  const [err, setErr] = useState('')
-
-  // Find matching DB plan by name (case-insensitive), or use first DB plan
-  function resolveDbPlan() {
-    const tier = TIERS.find(t => t.key === tierKey)
-    return dbPlans.find(p => p.name?.toLowerCase().replace(/\s/g,'_') === tierKey)
-      ?? dbPlans.find(p => p.name?.toLowerCase().includes(tier?.label?.toLowerCase().split(' ')[0] ?? ''))
-      ?? dbPlans[0]
-      ?? null
-  }
-
-  async function save() {
-    setErr('')
-    setSaving(true)
-    const tier = TIERS.find(t => t.key === tierKey)
-    const dbPlan = resolveDbPlan()
-    const expires = new Date(); expires.setDate(expires.getDate() + 30)
-
-    console.log('Saving tariff:', tier?.label, 'dbPlan:', dbPlan?.id, 'shop:', shop.id)
-
-    const payload = {
-      subscription_expires_at: expires.toISOString(),
-      sms_limit_remaining: tier?.sms ?? dbPlan?.sms_limit ?? 0,
-      call_limit_remaining: tier?.calls ?? dbPlan?.call_limit ?? 0,
-    }
-    if (dbPlan?.id) payload.subscription_plan_id = dbPlan.id
-
-    const { error } = await supabase.from('barbershops').update(payload).eq('id', shop.id)
-    setSaving(false)
-
-    if (error) {
-      console.error('[SalonEditModal]', error)
-      setErr(
-        error.message?.toLowerCase().includes('policy') || error.message?.toLowerCase().includes('rls')
-          ? '❌ Kirish taqiqlangan (RLS). Supabase policy tekshiring.'
-          : `❌ Xatolik: ${error.message}`
-      )
-      return
-    }
-
-    alert('✅ Tarif muvaffaqiyatli yangilandi!')
-    onSaved(shop.id, {
-      plan: dbPlan ?? { id: tierKey, name: tier?.label, price: tier?.price, sms_limit: tier?.sms, call_limit: tier?.calls },
-      expires: expires.toISOString(),
-    })
-    setSaving(false)
-    onClose()
-  }
-
-  const sel = TIERS.find(t => t.key === tierKey)
-  const selectStyle = {
-    ...G.card, width: '100%', padding: '12px 14px', fontSize: 13,
-    color: '#fff', outline: 'none', borderRadius: 14, boxSizing: 'border-box',
-    background: '#0f0a1e', appearance: 'none', cursor: 'pointer',
-  }
-
-  return (
-    <Overlay>
-      <ModalBox title={shop.name} onClose={onClose}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <label style={LBL}>Yangi tarif</label>
-          <select value={tierKey} onChange={e => setTierKey(e.target.value)} style={selectStyle}>
-            {TIERS.map(t => (
-              <option key={t.key} value={t.key} style={{ background: '#0f0a1e', color: '#fff' }}>
-                {t.label} — {t.price.toLocaleString()} UZS
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {sel && (
-          <div style={{ ...G.card, padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {[['SMS limiti', sel.sms], ["Qo'ng'iroq limiti", sel.calls], ['Muddat', '+30 kun']].map(([k, v]) => (
-              <div key={k} style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>{k}</span>
-                <span style={{ fontSize: 12, color: '#fff', fontWeight: 500 }}>{v}</span>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {err && (
-          <div style={{ padding: '10px 14px', borderRadius: 12, background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)', fontSize: 12, color: '#fca5a5', lineHeight: 1.5 }}>
-            {err}
-          </div>
-        )}
-
-        <Btn onClick={save} disabled={saving}>
-          {saving ? 'Saqlanmoqda…' : 'Tasdiqlash va limitlarni yangilash'}
-        </Btn>
-      </ModalBox>
-    </Overlay>
-  )
-}
-
-// ── GlobalPriceModal — edit display price on plan cards ───────
-function GlobalPriceModal({ plan, onClose, onSaved }) {
-  // Strip commas/non-digits so type="number" input works correctly
-  const [price, setPrice] = useState(String(plan.price ?? '').replace(/[^0-9]/g, ''))
-  const [saving, setSaving] = useState(false)
-  const [err, setErr] = useState('')
-
-  async function save() {
-    setErr('')
-    setSaving(true)
-    if (plan.dbId) {
-      const { error } = await supabase.from('subscription_plans').update({ price: Number(price) }).eq('id', plan.dbId)
-      if (error) {
-        setErr(`❌ Xatolik: ${error.message}`)
-        setSaving(false)
-        return
-      }
-    }
-    setSaving(false)
-    alert('✅ Narx muvaffaqiyatli yangilandi!')
-    onSaved({ ...plan, price: String(price) })
-    onClose()
-  }
-
-  const inp = { ...G.card, width: '100%', padding: '12px 14px', fontSize: 13, color: '#fff', outline: 'none', borderRadius: 14, boxSizing: 'border-box' }
-
-  return (
-    <Overlay>
-      <ModalBox title={`Narxni tahrirlash — ${plan.name}`} onClose={onClose}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <label style={LBL}>Yangi narx (UZS / oy)</label>
-          <input
-            style={inp}
-            type="number"
-            min="0"
-            value={price}
-            onChange={e => setPrice(e.target.value)}
-            placeholder="200000"
-            autoFocus
-          />
-        </div>
-        {err && (
-          <div style={{ padding: '10px 14px', borderRadius: 12, background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)', fontSize: 12, color: '#fca5a5' }}>
-            {err}
-          </div>
-        )}
-        <Btn onClick={save} disabled={saving || !price}>
-          {saving ? 'Saqlanmoqda…' : 'Saqlash'}
-        </Btn>
-      </ModalBox>
-    </Overlay>
-  )
-}
-  }
-
-  const inp = { ...G.card, width: '100%', padding: '12px 14px', fontSize: 13, color: '#fff', outline: 'none', borderRadius: 14, boxSizing: 'border-box' }
-
-  return (
-    <Overlay>
-      <ModalBox title={`Narxni tahrirlash — ${plan.name}`} onClose={onClose}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <label style={LBL}>Yangi narx (UZS / oy)</label>
-          <input style={inp} type="number" value={price} onChange={e => setPrice(e.target.value)} placeholder="200000" />
-        </div>
-        {err && (
-          <div style={{ padding: '10px 14px', borderRadius: 12, background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)', fontSize: 12, color: '#fca5a5' }}>
-            {err}
-          </div>
-        )}
-        <Btn onClick={save} disabled={saving || !price}>
-          {saving ? 'Saqlanmoqda…' : 'Saqlash'}
-        </Btn>
-      </ModalBox>
-    </Overlay>
-  )
-}
-
-// ── (legacy UpdateModal kept as alias) ────────────────────────
-const UpdateModal = SalonEditModal
-
-// ── Main ──────────────────────────────────────────────────────
-export default function SuperAdminDashboard() {
-  const [shops, setShops] = useState([])
-  const [plans, setPlans] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [modal, setModal] = useState(null)
-  const [newSalon, setNewSalon] = useState(false)
-  const [editPlan, setEditPlan] = useState(null)
-
-  const load = useCallback(async () => {
-    const [{ data: s }, { data: p }] = await Promise.all([
-      supabase.from('barbershops')
-        .select('id,name,is_active,subscription_plan_id,subscription_expires_at,sms_limit_remaining,call_limit_remaining,subscription_plans(name,price,sms_limit,call_limit)')
-        .order('created_at', { ascending: false }),
-      supabase.from('subscription_plans').select('*').order('price'),
-    ])
-    setShops(s ?? []); setPlans(p ?? []); setLoading(false)
-  }, [])
-
-  useEffect(() => { load() }, [load])
-
-  async function toggleActive(id, current) {
-    await supabase.from('barbershops').update({ is_active: !current }).eq('id', id)
-    setShops(prev => prev.map(s => s.id === id ? { ...s, is_active: !current } : s))
-  }
-
-  function handleSaved(shopId, { plan, expires }) {
-    setShops(prev => prev.map(s => s.id === shopId ? {
-      ...s, subscription_plan_id: plan.id, subscription_expires_at: expires,
-      sms_limit_remaining: plan.sms_limit, call_limit_remaining: plan.call_limit, subscription_plans: plan,
-    } : s))
-  }
-
-  const activeShops = shops.filter(s => s.is_active)
-  const monthlyRevenue = activeShops.reduce((sum, s) => sum + (s.subscription_plans?.price ?? 0), 0)
-  const totalSmsUsed = shops.reduce((sum, s) => sum + ((plans.find(p => p.id === s.subscription_plan_id)?.sms_limit ?? 0) - (s.sms_limit_remaining ?? 0)), 0)
-  const totalCallsUsed = shops.reduce((sum, s) => sum + ((plans.find(p => p.id === s.subscription_plan_id)?.call_limit ?? 0) - (s.call_limit_remaining ?? 0)), 0)
-  const fmtDate = iso => iso ? new Date(iso).toLocaleDateString([], { day: '2-digit', month: 'short', year: '2-digit' }) : '—'
-
-  if (loading) return (
-    <div style={{ minHeight: '100vh', background: 'radial-gradient(circle at top right, #1a0b2e, #0a0512)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <Loader />
-    </div>
-  )
-
-  return (
-    <>
-      <style>{FLOAT_CSS}</style>
-      <div style={{ minHeight: '100vh', background: 'radial-gradient(circle at top right, #1a0b2e, #0a0512)', color: '#fff', fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif' }}>
-
-        {/* Ambient orbs */}
-        <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', top: -100, right: -100, width: 600, height: 600, borderRadius: '50%', background: 'radial-gradient(circle, rgba(138,43,226,0.12) 0%, transparent 70%)' }} />
-          <div style={{ position: 'absolute', bottom: -150, left: -100, width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,204,0,0.07) 0%, transparent 70%)' }} />
-          <div style={{ position: 'absolute', top: '40%', left: '30%', width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, rgba(138,43,226,0.06) 0%, transparent 70%)' }} />
-        </div>
-
-        <div style={{ position: 'relative', zIndex: 10, maxWidth: 1200, margin: '0 auto', padding: '40px 20px' }}>
-
-          {/* Header */}
-          <div style={{ marginBottom: 40, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 16 }}>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {Object.entries(prices).map(([key, value]) => (
+          <div key={key} className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 shadow-xl flex flex-col justify-between">
             <div>
-              <p style={{ fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(255,204,0,0.45)', marginBottom: 8 }}>
-                Platforma boshqaruvi
-              </p>
-              <h1 style={{ fontSize: 36, fontWeight: 700, margin: 0, letterSpacing: '-0.02em',
-                background: 'linear-gradient(135deg, #fff 40%, rgba(255,204,0,0.7))',
-                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                SuperAdmin paneli
-              </h1>
+              <h3 className="text-lg font-bold uppercase tracking-wider text-gray-400">{key}</h3>
+              <p className="text-3xl font-extrabold my-4 text-[#ffcc00] shadow-glow">{value.toLocaleString()} UZS</p>
             </div>
-            <button onClick={() => setNewSalon(true)}
-              style={{ fontSize: 12, fontWeight: 600, padding: '12px 22px', borderRadius: 14, cursor: 'pointer', letterSpacing: '0.06em', whiteSpace: 'nowrap',
-                background: 'rgba(255,204,0,0.1)', color: '#ffcc00', border: '1px solid rgba(255,204,0,0.25)',
-                boxShadow: '0 0 24px rgba(255,204,0,0.12)', transition: 'all .2s' }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,204,0,0.18)'; e.currentTarget.style.boxShadow = '0 0 32px rgba(255,204,0,0.22)' }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,204,0,0.1)'; e.currentTarget.style.boxShadow = '0 0 24px rgba(255,204,0,0.12)' }}>
-              + Yangi Salon Qo'shish
+            <button
+              onClick={() => {
+                setEditingPlanKey(key);
+                setCustomPriceInput(value);
+                setActiveModal('global_price');
+              }}
+              className="mt-4 w-full py-2 rounded-xl bg-purple-600/30 border border-purple-500/50 hover:bg-purple-600/50 transition font-medium"
+            >
+              Tarif Narxini Tahrirlash
             </button>
           </div>
+        ))}
+      </div>
 
-          {/* Metrics */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 40 }}>
-            <Metric label="Faol salonlar"  value={activeShops.length}                          sub={`${shops.length} jami`} delay="0s"    color="#ffcc00" />
-            <Metric label="Oylik tushum"   value={`${(monthlyRevenue/1_000_000).toFixed(2)}M`} sub="UZS"                   delay="0.4s"  color="#ffcc00" />
-            <Metric label="SMS yuborildi"  value={totalSmsUsed.toLocaleString()}               sub="bu davr"               delay="0.8s"  color="#b57bee" />
-            <Metric label="Qo'ng'iroqlar"  value={totalCallsUsed.toLocaleString()}             sub="bu davr"               delay="1.2s"  color="#b57bee" />
-          </div>
-
-          {/* Tenant table */}
-          <div style={{ marginBottom: 40 }}>
-            <SectionTitle>Salonlar boshqaruvi</SectionTitle>
-            <div style={{ ...G.card, overflow: 'hidden' }}>
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                  <thead>
-                    <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                      {['Salon', 'Tarif', 'Muddat', 'SMS', "Qo'ng'iroq", 'Holat', ''].map(h => (
-                        <th key={h} style={{ padding: '14px 16px', textAlign: 'left', fontSize: 10, fontWeight: 500, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.2)', whiteSpace: 'nowrap' }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {shops.length === 0 ? (
-                      <tr>
-                        <td colSpan={7}>
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, padding: '48px 20px' }}>
-                            <div style={{ width: 56, height: 56, borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                              <svg width="24" height="24" fill="none" stroke="rgba(255,204,0,0.5)" strokeWidth="1.5" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349m-16.5 11.65V9.35m0 0a3.001 3.001 0 003.75-.615A2.993 2.993 0 009.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 002.25 1.016c.896 0 1.7-.393 2.25-1.016a3.001 3.001 0 003.75.614m-16.5 0a3.004 3.004 0 01-.621-4.72L4.318 3.44A1.5 1.5 0 015.378 3h13.243a1.5 1.5 0 011.06.44l1.19 1.189a3 3 0 01-.621 4.72m-13.5 8.65h3.75a.75.75 0 00.75-.75V13.5a.75.75 0 00-.75-.75H6.75a.75.75 0 00-.75.75v3.75c0 .415.336.75.75.75z" />
-                              </svg>
-                            </div>
-                            <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.02em' }}>
-                              Hozircha faol salonlar mavjud emas
-                            </p>
-                            <button
-                              onClick={() => setNewSalon(true)}
-                              style={{ fontSize: 12, fontWeight: 600, padding: '10px 20px', borderRadius: 12, cursor: 'pointer', letterSpacing: '0.04em',
-                                background: 'rgba(255,204,0,0.07)', color: '#ffcc00', border: '1px solid rgba(255,204,0,0.2)',
-                                boxShadow: '0 0 20px rgba(255,204,0,0.08)', transition: 'all .2s' }}
-                              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,204,0,0.14)'; e.currentTarget.style.boxShadow = '0 0 24px rgba(255,204,0,0.18)' }}
-                              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,204,0,0.07)'; e.currentTarget.style.boxShadow = '0 0 20px rgba(255,204,0,0.08)' }}>
-                              + Yangi Salon Qo'shish
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ) : shops.map(s => (
-                      <tr key={s.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', transition: 'background .15s' }}
-                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}
-                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                        <td style={{ padding: '14px 16px', fontWeight: 600, color: '#fff', whiteSpace: 'nowrap' }}>{s.name}</td>
-                        <td style={{ padding: '14px 16px' }}>
-                          <span style={{ fontSize: 11, padding: '4px 10px', borderRadius: 20, fontWeight: 600,
-                            background: 'rgba(255,204,0,0.08)', color: '#ffcc00', border: '1px solid rgba(255,204,0,0.18)' }}>
-                            {s.subscription_plans?.name ?? '—'}
-                          </span>
-                        </td>
-                        <td style={{ padding: '14px 16px', color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap' }}>{fmtDate(s.subscription_expires_at)}</td>
-                        <td style={{ padding: '14px 16px' }}>
-                          <span style={{ fontWeight: 700, fontSize: 14, color: (s.sms_limit_remaining ?? 0) > 10 ? '#4ade80' : '#f87171' }}>
-                            {s.sms_limit_remaining ?? 0}
-                          </span>
-                        </td>
-                        <td style={{ padding: '14px 16px' }}>
-                          <span style={{ fontWeight: 700, fontSize: 14, color: (s.call_limit_remaining ?? 0) > 5 ? '#4ade80' : '#f87171' }}>
-                            {s.call_limit_remaining ?? 0}
-                          </span>
-                        </td>
-                        <td style={{ padding: '14px 16px' }}>
-                          <button onClick={() => toggleActive(s.id, s.is_active)}
-                            style={{ position: 'relative', width: 40, height: 22, borderRadius: 11, border: 'none', cursor: 'pointer', transition: 'all .3s',
-                              background: s.is_active ? '#ffcc00' : 'rgba(255,255,255,0.1)',
-                              boxShadow: s.is_active ? '0 0 14px rgba(255,204,0,0.45)' : 'none' }}>
-                            <span style={{ position: 'absolute', top: 3, width: 16, height: 16, borderRadius: '50%', background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.3)', transition: 'left .3s', left: s.is_active ? 21 : 3 }} />
-                          </button>
-                        </td>
-                        <td style={{ padding: '14px 16px' }}>
-                          <button onClick={() => setModal(s)}
-                            style={{ fontSize: 11, padding: '7px 14px', borderRadius: 10, cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all .2s',
-                              background: 'rgba(255,204,0,0.07)', color: '#ffcc00', border: '1px solid rgba(255,204,0,0.18)' }}
-                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,204,0,0.14)'}
-                            onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,204,0,0.07)'}>
-                            Tarifni yangilash
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-
-          {/* Plan cards */}
-          <div>
-            <SectionTitle>Tarif narxlari</SectionTitle>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 20, marginBottom: 32 }}>
-              {[
-                { name: 'STANDARD', price: '200,000', badge: null,
-                  features: ["1 Salon uchun", "Cheksiz navbatlar", "SMS ogohlantirishlar"],
-                  accent: 'rgba(255,255,255,0.7)' },
-                { name: 'PREMIUM', price: '500,000', badge: 'Mashhur',
-                  features: ["3 Salon uchun", "Ustalar statistikasi", "CRM boshqaruv"],
-                  accent: '#ffcc00' },
-                { name: 'VIP BRAND', price: '1,000,000', badge: 'Elite',
-                  features: ["Cheksiz salonlar", "Shaxsiy menejer", "24/7 Support"],
-                  accent: '#b57bee' },
-              ].map((plan, i) => (
-                <div key={plan.name} style={{
-                  ...G.card,
-                  border: `1px solid rgba(255,255,255,${plan.name === 'PREMIUM' ? '0.14' : '0.07'})`,
-                  boxShadow: plan.name === 'PREMIUM'
-                    ? '0 30px 60px rgba(0,0,0,0.5), 0 0 40px rgba(255,204,0,0.08), inset 0 1px 0 rgba(255,255,255,0.12)'
-                    : G.card.boxShadow,
-                  padding: 28, display: 'flex', flexDirection: 'column', gap: 20,
-                  animation: `float 5s ease-in-out ${i * 0.3}s infinite`,
-                  position: 'relative', overflow: 'hidden',
-                }}>
-                  {/* Top glow line */}
-                  <div style={{ position: 'absolute', top: 0, left: '20%', right: '20%', height: 1,
-                    background: `linear-gradient(90deg, transparent, ${plan.accent}60, transparent)` }} />
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <p style={{ margin: 0, fontSize: 11, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: plan.accent }}>{plan.name}</p>
-                    {plan.badge && (
-                      <span style={{ fontSize: 10, fontWeight: 600, padding: '3px 10px', borderRadius: 20, letterSpacing: '0.08em',
-                        background: `${plan.accent}18`, color: plan.accent, border: `1px solid ${plan.accent}35` }}>
-                        {plan.badge}
-                      </span>
-                    )}
-                  </div>
-
-                  <div>
-                    <p style={{ margin: 0, fontSize: 30, fontWeight: 700, color: plan.accent,
-                      textShadow: `0 0 20px ${plan.accent}60, 0 0 40px ${plan.accent}25` }}>
-                      {plan.price}
-                    </p>
-                    <p style={{ margin: '4px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>UZS / oy</p>
-                  </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {plan.features.map(f => (
-                      <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div style={{ width: 5, height: 5, borderRadius: '50%', background: plan.accent, boxShadow: `0 0 6px ${plan.accent}` }} />
-                        <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>{f}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  <button
-                    onClick={() => {
-                      const dbPlan = plans.find(p => p.name?.toUpperCase().replace(/\s/g,'_') === plan.name.replace(/\s/g,'_'))
-                      setEditPlan({ ...plan, dbId: dbPlan?.id ?? null })
-                    }}
-                    style={{ marginTop: 'auto', padding: '12px', borderRadius: 14, fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                      letterSpacing: '0.06em', transition: 'all .25s',
-                      background: `${plan.accent}12`, color: plan.accent,
-                      border: `1px solid ${plan.accent}30`,
-                      boxShadow: `0 0 20px ${plan.accent}10` }}
-                    onMouseEnter={e => { e.currentTarget.style.background = `${plan.accent}22`; e.currentTarget.style.boxShadow = `0 0 28px ${plan.accent}25` }}
-                    onMouseLeave={e => { e.currentTarget.style.background = `${plan.accent}12`; e.currentTarget.style.boxShadow = `0 0 20px ${plan.accent}10` }}>
-                    Tahrirlash
-                  </button>
-                </div>
-              ))}
-            </div>
-
-            {/* Inline price editor for DB plans */}
-            {plans.length > 0 && (
-              <div style={{ ...G.card, padding: '4px 20px' }}>
-                {plans.map(p => (
-                  <PlanRow key={p.id} plan={p} onSave={(id, price) => setPlans(prev => prev.map(x => x.id === id ? { ...x, price } : x))} />
-                ))}
-              </div>
-            )}
+      {activeModal === 'salon_tariff' && selectedSalon && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-50">
+          <div className="bg-[#120720] border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl relative">
+            <button onClick={() => setActiveModal(null)} className="absolute top-4 right-4 text-gray-400 hover:text-white">✕</button>
+            <h3 className="text-xl font-bold mb-4">{selectedSalon.name}</h3>
+            <form onSubmit={handleUpdateSalonTariff}>
+              <label className="block text-sm text-gray-400 mb-2">Yangi Tarifni Tanlang</label>
+              <select
+                value={tariffInput}
+                onChange={(e) => setTariffInput(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white mb-6 focus:outline-none focus:border-purple-500"
+              >
+                <option value="standard" className="bg-[#120720]">Standard</option>
+                <option value="premium" className="bg-[#120720]">Premium</option>
+                <option value="vip" className="bg-[#120720]">VIP Brand</option>
+              </select>
+              <button type="submit" className="w-full py-3 bg-gradient-to-r from-amber-500 to-yellow-600 text-black font-bold rounded-xl shadow-lg hover:brightness-110 transition">
+                Tasdiqlash va limitlarni yangilash
+              </button>
+            </form>
           </div>
         </div>
+      )}
 
-        {modal && <SalonEditModal key={modal.id + Date.now()} shop={modal} dbPlans={plans} onClose={() => setModal(null)} onSaved={handleSaved} />}
-        {newSalon && <NewSalonModal plans={plans} onClose={() => setNewSalon(false)} onCreated={s => setShops(prev => [s, ...prev])} />}
-        {editPlan && <GlobalPriceModal plan={editPlan} onClose={() => setEditPlan(null)} onSaved={updated => {
-          setEditPlan(null)
-          setPlans(prev => prev.map(p => p.name?.toLowerCase() === updated.name?.toLowerCase() ? { ...p, price: Number(updated.price) } : p))
-        }} />}
-      </div>
-    </>
-  )
+      {activeModal === 'global_price' && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-50">
+          <div className="bg-[#120720] border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl relative">
+            <button onClick={() => setActiveModal(null)} className="absolute top-4 right-4 text-gray-400 hover:text-white">✕</button>
+            <h3 className="text-xl font-bold mb-4 uppercase">Narxni tahrirlash — {editingPlanKey}</h3>
+            <form onSubmit={handleUpdateGlobalPrice}>
+              <label className="block text-sm text-gray-400 mb-2">Yangi Narx (UZS / OY)</label>
+              <input
+                type="number"
+                value={customPriceInput}
+                onChange={(e) => setCustomPriceInput(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white mb-6 focus:outline-none focus:border-purple-500"
+                placeholder="Narxni kiriting"
+                required
+              />
+              <button type="submit" className="w-full py-3 bg-gradient-to-r from-amber-500 to-yellow-600 text-black font-bold rounded-xl shadow-lg hover:brightness-110 transition">
+                Saqlash
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
