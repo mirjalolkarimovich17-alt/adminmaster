@@ -178,8 +178,9 @@ export default function BarberDashboard({ ownerMode = false }) {
       if (ownerMode) {
         const tgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id
           ?? Number(localStorage.getItem('tg_id'))
-        const { data: owned } = await supabase
+        const { data: owned, error: ownErr } = await supabase
           .from('barbershops').select('id').eq('owner_tg_id', tgId).maybeSingle()
+        alert(`tgId=${tgId} owned=${owned?.id} err=${ownErr?.message}`)
         if (owned?.id) sid = owned.id
       }
 
