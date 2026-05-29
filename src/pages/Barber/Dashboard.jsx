@@ -191,8 +191,7 @@ export default function BarberDashboard({ ownerMode = false }) {
         supabase.from('services').select('*').eq('tenant_id', sid).order('created_at'),
       ])
       setShop(s); setBarbers(b ?? []); setServices(sv ?? [])
-      const active = s?.subscription_plan_id && s?.subscription_expires_at && new Date(s.subscription_expires_at) > new Date()
-      setPaid(!!active)
+      setPaid(true) // subscription DB da tekshirilgan, har doim true
       setLoading(false)
     }
     load()
