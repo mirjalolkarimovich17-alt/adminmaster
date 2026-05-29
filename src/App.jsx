@@ -13,26 +13,52 @@ import SlotManager from './pages/Barber/SlotManager.jsx'
 import SuperAdminDashboard from './pages/SuperAdmin/Dashboard.jsx'
 
 const OWNER_ID = 8536944196
+const IS_SUPERADMIN_BOT = !import.meta.env.VITE_TENANT_ID
 
 async function resolveRole(tgId) {
-  if (!tgId) return 'client'
+  if (!tgId) return IS_SUPERADMIN_BOT ? 'blocked' : 'client'
   if (tgId === OWNER_ID) return 'superadmin'
+  if (IS_SUPERADMIN_BOT) return 'blocked'
 
-  // Agar bu salon boti bo'lsa (VITE_TENANT_ID bor), owner checkni o'tkazmaymiz
-  const isSalonBot = !!import.meta.env.VITE_TENANT_ID
-
-  const queries = [
+  const [{ data: admin }, { data: barber }, { data: ownedShop }] = await Promise.all([
     supabase.from('superadmin').select('tg_id').eq('tg_id', tgId).maybeSingle(),
     supabase.from('barbers').select('id').eq('tg_id', tgId).eq('is_active', true).maybeSingle(),
-    isSalonBot ? Promise.resolve({ data: null }) : supabase.from('barbershops').select('id').eq('owner_tg_id', tgId).maybeSingle(),
-  ]
-
-  const [{ data: admin }, { data: barber }, { data: ownedShop }] = await Promise.all(queries)
+    supabase.from('barbershops').select('id').eq('owner_tg_id', tgId).maybeSingle(),
+  ])
 
   if (admin) return 'superadmin'
   if (ownedShop) return 'owner'
   if (barber) return 'barber'
   return 'client'
+}
+
+function Blocked() {
+  return (
+    <div style={{
+      minHeight: '100vh',
+      background: 'radial-gradient(circle at top, #1a0a0a, #0a0505)',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif', padding: 24, textAlign: 'center'
+    }}>
+      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none' }}>
+        <div style={{ position: 'absolute', top: '30%', left: '50%', transform: 'translate(-50%,-50%)', width: 400, height: 400, borderRadius: '50%', background: 'radial-gradient(circle, rgba(220,38,38,0.08) 0%, transparent 70%)' }} />
+      </div>
+      <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
+        <div style={{ width: 80, height: 80, borderRadius: 24, background: 'rgba(220,38,38,0.1)', border: '1px solid rgba(220,38,38,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <svg width="36" height="36" fill="none" stroke="#ef4444" strokeWidth="1.5" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+          </svg>
+        </div>
+        <div>
+          <p style={{ margin: '0 0 8px', fontSize: 22, fontWeight: 700, color: '#fff' }}>Доступ запрещён</p>
+          <p style={{ margin: 0, fontSize: 14, color: 'rgba(255,255,255,0.35)', lineHeight: 1.6 }}>У вас нет прав для входа<br />в эту панель управления.</p>
+        </div>
+        <div style={{ marginTop: 8, padding: '10px 20px', borderRadius: 12, background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.2)' }}>
+          <p style={{ margin: 0, fontSize: 12, color: 'rgba(220,38,38,0.7)', letterSpacing: '0.1em' }}>ДОСТУП ЗАКРЫТ</p>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 function RoleLoader() {
@@ -76,6 +102,8 @@ function RoleGate() {
   }, [])
 
   if (!role) return <RoleLoader />
+
+  if (role === 'blocked') return <Blocked />
 
   const dest = { superadmin: '/superadmin', owner: '/owner', barber: '/barber', client: '/client' }
   return <Navigate to={dest[role]} replace />
