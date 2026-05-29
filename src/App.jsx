@@ -18,8 +18,9 @@ const IS_SUPERADMIN_BOT = !import.meta.env.VITE_TENANT_ID
 
 async function resolveRole(tgId) {
   if (!tgId) return IS_SUPERADMIN_BOT ? 'blocked' : 'client'
-  if (tgId === OWNER_ID) return 'superadmin'
-  if (IS_SUPERADMIN_BOT) return 'blocked'
+  if (IS_SUPERADMIN_BOT) {
+    return tgId === OWNER_ID ? 'superadmin' : 'blocked'
+  }
 
   const [{ data: admin }, { data: barber }, { data: ownedShop }] = await Promise.all([
     supabase.from('superadmin').select('tg_id').eq('tg_id', tgId).maybeSingle(),
