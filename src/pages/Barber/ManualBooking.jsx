@@ -32,10 +32,18 @@ export default function ManualBooking({ ownerMode = false }) {
         supabase.from('barbers').select('id,name,daily_start_time,daily_end_time').eq('tenant_id', TENANT_ID).eq('is_active', true),
         supabase.from('services').select('id,name,price,duration_minutes').eq('tenant_id', TENANT_ID),
       ])
-      setBarbers(b ?? [])
       setServices(s ?? [])
-      if (b?.length) setForm(f => ({ ...f, barber_id: b[0].id }))
       if (s?.length) setForm(f => ({ ...f, service_id: s[0].id }))
+
+      if (ownerMode) {
+        setBarbers(b ?? [])
+        if (b?.length) setForm(f => ({ ...f, barber_id: b[0].id }))
+      } else {
+        const tgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id
+          ?? Number(localStorage.getItem('tg_id'))
+        const { data: me } = await supabase.from('barbers').select('id,name,daily_start_time,daily_end_time').eq('tg_id', tgId).eq('is_active', true).maybeSingle()
+        if (me) { setBarbers([me]); setForm(f => ({ ...f, barber_id: me.id })) }
+      }
       setLoading(false)
     }
     load()
@@ -94,9 +102,11 @@ export default function ManualBooking({ ownerMode = false }) {
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
 
         {/* Usta */}
-        <Select label="Usta" value={form.barber_id} onChange={e => setForm(f => ({ ...f, barber_id: e.target.value }))}>
-          {barbers.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-        </Select>
+        {ownerMode && (
+          <Select label="Usta" value={form.barber_id} onChange={e => setForm(f => ({ ...f, barber_id: e.target.value }))}>
+            {barbers.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+          </Select>
+        )}
 
         {/* Mijoz ma'lumotlari */}
         <SectionTitle>Mijoz ma'lumotlari</SectionTitle>

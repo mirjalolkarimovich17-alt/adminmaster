@@ -26,7 +26,21 @@ export default function SlotManager({ ownerMode = false }) {
     async function load() {
       const { data: b } = await supabase.from('barbers').select('id,name').eq('tenant_id', TENANT_ID).eq('is_active', true)
       setBarbers(b ?? [])
-      if (b?.length) setForm(f => ({ ...f, barber_id: b[0].id }))
+
+      if (ownerMode) {
+        // Owner barcha ustalarni ko'radi
+        if (b?.length) setForm(f => ({ ...f, barber_id: b[0].id }))
+      } else {
+        // Usta faqat o'zini ko'radi
+        const tgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id
+          ?? Number(localStorage.getItem('tg_id'))
+        const mine = b?.find(x => {
+          // barber_id ni tg_id bilan moslashtirish uchun barbers jadvalidan to'liq ma'lumot kerak
+          return true // quyida alohida query
+        })
+        const { data: me } = await supabase.from('barbers').select('id').eq('tg_id', tgId).eq('is_active', true).maybeSingle()
+        if (me) setForm(f => ({ ...f, barber_id: me.id }))
+      }
       setLoading(false)
     }
     load()
@@ -83,9 +97,11 @@ export default function SlotManager({ ownerMode = false }) {
       <form onSubmit={addBlock} className="flex flex-col gap-4 mb-8">
         <SectionTitle>Vaqtni bloklash</SectionTitle>
 
-        <Select label="Usta" value={form.barber_id} onChange={e => setForm(f => ({ ...f, barber_id: e.target.value }))}>
-          {barbers.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-        </Select>
+        {ownerMode && (
+          <Select label="Usta" value={form.barber_id} onChange={e => setForm(f => ({ ...f, barber_id: e.target.value }))}>
+            {barbers.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+          </Select>
+        )}
 
         <Input label="Sana" type="date" value={form.date} min={today}
           onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
