@@ -187,11 +187,12 @@ export default function BarberDashboard({ ownerMode = false }) {
       if (!sid) { setLoading(false); return }
       setShopId(sid)
 
-      const [{ data: s }, { data: b }, { data: sv }] = await Promise.all([
+      const [{ data: s }, { data: b, error: bErr }, { data: sv }] = await Promise.all([
         supabase.from('barbershops').select('id,name,is_active,subscription_expires_at,subscription_plan_id').eq('id', sid).single(),
         supabase.from('barbers').select('*').eq('tenant_id', sid).eq('is_active', true).order('created_at'),
         supabase.from('services').select('*').eq('tenant_id', sid).order('created_at'),
       ])
+      alert(`barbers=${b?.length} err=${bErr?.message} sid=${sid}`)
       setShop(s); setBarbers(b ?? []); setServices(sv ?? [])
       const active = s?.subscription_plan_id && s?.subscription_expires_at && new Date(s.subscription_expires_at) > new Date()
       setPaid(!!active)
