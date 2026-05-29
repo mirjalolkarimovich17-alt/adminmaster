@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../../supabaseClient';
+import { supabase } from '../../config/supabaseClient';
 
 export default function SuperAdmin() {
   const [salons, setSalons] = useState([]);
