@@ -4,6 +4,9 @@ import { supabase } from './config/supabaseClient'
 import Home from './pages/Client/Home.jsx'
 import Booking from './pages/Client/Booking.jsx'
 import MyAppointments from './pages/Client/MyAppointments.jsx'
+import SalonHome from './pages/Salon/Home.jsx'
+import SalonBooking from './pages/Salon/Booking.jsx'
+import SalonAppointments from './pages/Salon/MyAppointments.jsx'
 import Dashboard from './pages/Barber/Dashboard.jsx'
 import ManualBooking from './pages/Barber/ManualBooking.jsx'
 import SlotManager from './pages/Barber/SlotManager.jsx'
@@ -55,7 +58,6 @@ function RoleGate() {
 
     let tgId = tg?.initDataUnsafe?.user?.id ?? null
 
-    // Persist across sessions (Desktop fallback)
     if (!tgId) {
       const stored = localStorage.getItem('tg_id')
       if (stored) tgId = Number(stored)
@@ -78,14 +80,22 @@ export default function App() {
       <Routes>
         <Route path="/" element={<RoleGate />} />
 
+        {/* Client routes (old) */}
         <Route path="/client" element={<Home />} />
         <Route path="/client/booking" element={<Booking />} />
         <Route path="/client/appointments" element={<MyAppointments />} />
 
+        {/* Salon routes (new multi-tenant) */}
+        <Route path="/client/:slug" element={<SalonHome />} />
+        <Route path="/client/:slug/booking" element={<SalonBooking />} />
+        <Route path="/client/:slug/appointments" element={<SalonAppointments />} />
+
+        {/* Barber routes */}
         <Route path="/barber" element={<Dashboard />} />
         <Route path="/barber/booking" element={<ManualBooking />} />
         <Route path="/barber/slots" element={<SlotManager />} />
 
+        {/* SuperAdmin routes */}
         <Route path="/superadmin" element={<SuperAdminDashboard />} />
 
         <Route path="*" element={<Navigate to="/" replace />} />
