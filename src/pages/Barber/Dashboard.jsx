@@ -91,7 +91,8 @@ function BarberModal({ barber, shopId, onClose, onSaved }) {
     const payload = { name: form.name.trim(), tg_id: form.tg_id ? Number(form.tg_id) : null, daily_start_time: form.daily_start_time, daily_end_time: form.daily_end_time, tenant_id: shopId }
     const { data, error } = barber
       ? await supabase.from('barbers').update(payload).eq('id', barber.id).select().single()
-      : await supabase.from('barbers').insert({ ...payload, is_active: true }).select().single()    setSaving(false)
+      : await supabase.from('barbers').insert({ ...payload, is_active: true }).select().single()
+    setSaving(false)
     if (error) { setErr(error.message); return }
     onSaved(data, !!barber); onClose()
   }
