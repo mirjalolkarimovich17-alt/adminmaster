@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { supabase, getTenantId } from '../config/supabaseClient'
-import Layout from '../components/Layout'
-import { Loader, Input } from '../components/UiKit'
+import { supabase, getTenantId } from '../../config/supabaseClient'
+import Layout from '../../components/Layout'
+import { Loader, Input } from '../../components/UiKit'
 
 const STEPS = ['Xizmat', 'Usta', 'Sana va vaqt', 'Tasdiqlash']
 
