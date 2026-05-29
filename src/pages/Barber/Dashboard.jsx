@@ -70,13 +70,9 @@ const PLANS_STATIC = [
 ]
 
 function Paywall({ onActivate }) {
-  const [loading, setLoading] = useState(false)
-
-  async function pay(planName) {
-    setLoading(planName)
-    await new Promise(r => setTimeout(r, 1200)) // simulate payment
-    setLoading(false)
-    onActivate()
+  function pay(planName) {
+    const text = encodeURIComponent(`Salom! ${planName} tarifiga obuna bo'lmoqchiman.`)
+    window.Telegram?.WebApp?.openTelegramLink(`https://t.me/wasadmin?text=${text}`)
   }
 
   return (
@@ -122,11 +118,11 @@ function Paywall({ onActivate }) {
                   </div>
                 ))}
               </div>
-              <button onClick={() => pay(plan.name)} disabled={!!loading}
-                style={{ padding: '12px', borderRadius: 14, fontSize: 12, fontWeight: 600, cursor: loading ? 'wait' : 'pointer', transition: 'all .25s',
+              <button onClick={() => pay(plan.name)}
+                style={{ padding: '12px', borderRadius: 14, fontSize: 12, fontWeight: 600, cursor: 'pointer', transition: 'all .25s',
                   background: `${plan.accent}15`, color: plan.accent, border: `1px solid ${plan.accent}35`,
-                  boxShadow: `0 0 20px ${plan.accent}12`, opacity: loading && loading !== plan.name ? 0.5 : 1 }}>
-                {loading === plan.name ? 'Tekshirilmoqda…' : "To'lov Qilish"}
+                  boxShadow: `0 0 20px ${plan.accent}12` }}>
+                To'lov Qilish
               </button>
             </div>
           ))}
@@ -137,7 +133,7 @@ function Paywall({ onActivate }) {
 }
 
 // ── Add/Edit Barber Modal ─────────────────────────────────────
-function BarberModal({ barber, onClose, onSaved }) {
+function BarberModal({ barber, shopId, onClose, onSaved }) {
   const [form, setForm] = useState({
     name: barber?.name ?? '',
     tg_id: barber?.tg_id ?? '',
@@ -148,7 +144,8 @@ function BarberModal({ barber, onClose, onSaved }) {
 
   async function save() {
     setSaving(true)
-    const payload = { name: form.name.trim(), tg_id: form.tg_id ? Number(form.tg_id) : null, daily_start_time: form.daily_start_time, daily_end_time: form.daily_end_time, tenant_id: TENANT_ID }
+    const tenantId = shopId || TENANT_ID
+    const payload = { name: form.name.trim(), tg_id: form.tg_id ? Number(form.tg_id) : null, daily_start_time: form.daily_start_time, daily_end_time: form.daily_end_time, tenant_id: tenantId }
     const { data, error } = barber
       ? await supabase.from('barbers').update(payload).eq('id', barber.id).select().single()
       : await supabase.from('barbers').insert({ ...payload, is_active: true }).select().single()
@@ -182,13 +179,14 @@ function BarberModal({ barber, onClose, onSaved }) {
 }
 
 // ── Add/Edit Service Modal ────────────────────────────────────
-function ServiceModal({ service, onClose, onSaved }) {
+function ServiceModal({ service, shopId, onClose, onSaved }) {
   const [form, setForm] = useState({ name: service?.name ?? '', price: service?.price ?? '', duration_minutes: service?.duration_minutes ?? 30 })
   const [saving, setSaving] = useState(false)
 
   async function save() {
     setSaving(true)
-    const payload = { name: form.name.trim(), price: Number(form.price), duration_minutes: Number(form.duration_minutes), tenant_id: TENANT_ID }
+    const tenantId = shopId || TENANT_ID
+    const payload = { name: form.name.trim(), price: Number(form.price), duration_minutes: Number(form.duration_minutes), tenant_id: tenantId }
     const { data, error } = service
       ? await supabase.from('services').update(payload).eq('id', service.id).select().single()
       : await supabase.from('services').insert(payload).select().single()
@@ -387,6 +385,7 @@ export default function BarberDashboard({ ownerMode = false }) {
       {barberModal && (
         <BarberModal
           barber={barberModal === 'new' ? null : barberModal}
+          shopId={shop?.id}
           onClose={() => setBarberModal(null)}
           onSaved={(data, isEdit) => setBarbers(prev => isEdit ? prev.map(b => b.id === data.id ? data : b) : [...prev, data])}
         />
@@ -394,6 +393,7 @@ export default function BarberDashboard({ ownerMode = false }) {
       {serviceModal && (
         <ServiceModal
           service={serviceModal === 'new' ? null : serviceModal}
+          shopId={shop?.id}
           onClose={() => setServiceModal(null)}
           onSaved={(data, isEdit) => setServices(prev => isEdit ? prev.map(s => s.id === data.id ? data : s) : [...prev, data])}
         />

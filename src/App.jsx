@@ -18,11 +18,16 @@ async function resolveRole(tgId) {
   if (!tgId) return 'client'
   if (tgId === OWNER_ID) return 'superadmin'
 
-  const [{ data: admin }, { data: barber }, { data: ownedShop }] = await Promise.all([
+  // Agar bu salon boti bo'lsa (VITE_TENANT_ID bor), owner checkni o'tkazmaymiz
+  const isSalonBot = !!import.meta.env.VITE_TENANT_ID
+
+  const queries = [
     supabase.from('superadmin').select('tg_id').eq('tg_id', tgId).maybeSingle(),
     supabase.from('barbers').select('id').eq('tg_id', tgId).eq('is_active', true).maybeSingle(),
-    supabase.from('barbershops').select('id').eq('owner_tg_id', tgId).maybeSingle(),
-  ])
+    isSalonBot ? Promise.resolve({ data: null }) : supabase.from('barbershops').select('id').eq('owner_tg_id', tgId).maybeSingle(),
+  ]
+
+  const [{ data: admin }, { data: barber }, { data: ownedShop }] = await Promise.all(queries)
 
   if (admin) return 'superadmin'
   if (ownedShop) return 'owner'
