@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../config/supabaseClient'
 
@@ -29,16 +29,12 @@ export default function BarberProfile() {
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [tab, setTab] = useState('today') // today | upcoming | past
+  const [refreshing, setRefreshing] = useState(false)
 
   const tgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id
     ?? Number(localStorage.getItem('tg_id'))
 
-  useEffect(() => {
-    window.Telegram?.WebApp?.expand?.()
-    load()
-  }, [])
-
-  async function load() {
+  const load = useCallback(async () => {
     const { data: b } = await supabase
       .from('barbers')
       .select('id,name,daily_start_time,daily_end_time,profile_photo,rating')
@@ -46,7 +42,7 @@ export default function BarberProfile() {
       .eq('is_active', true)
       .maybeSingle()
 
-    if (!b) { setLoading(false); return }
+    if (!b) { setLoading(false); setRefreshing(false); return }
     setBarber(b)
 
     const { data: appts } = await supabase
@@ -57,6 +53,17 @@ export default function BarberProfile() {
 
     setAppointments(appts ?? [])
     setLoading(false)
+    setRefreshing(false)
+  }, [tgId])
+
+  useEffect(() => {
+    window.Telegram?.WebApp?.expand?.()
+    load()
+  }, [load])
+
+  async function refresh() {
+    setRefreshing(true)
+    await load()
   }
 
   async function uploadPhoto(e) {
@@ -113,6 +120,14 @@ export default function BarberProfile() {
       </div>
 
       <div style={{ position: 'relative', zIndex: 1, maxWidth: 480, margin: '0 auto', padding: '0 16px' }}>
+
+        {/* Refresh button */}
+        <button onClick={refresh} disabled={refreshing}
+          style={{ position: 'absolute', top: 12, right: 16, width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 10 }}>
+          <svg style={{ width: 18, height: 18, color: GOLD, animation: refreshing ? 'spin 0.8s linear infinite' : 'none' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+        </button>
 
         {/* Hero */}
         <div style={{ paddingTop: 40, paddingBottom: 28, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>

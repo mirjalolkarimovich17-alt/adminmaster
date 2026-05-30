@@ -13,6 +13,7 @@ export default function SlotManager({ ownerMode = false }) {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [tenantId, setTenantId] = useState(TENANT_ID)
 
   const [form, setForm] = useState({
     barber_id: '',
@@ -24,20 +25,28 @@ export default function SlotManager({ ownerMode = false }) {
 
   useEffect(() => {
     async function load() {
-      const { data: b } = await supabase.from('barbers').select('id,name').eq('tenant_id', TENANT_ID).eq('is_active', true)
+      let tid = TENANT_ID
+
+      if (ownerMode) {
+        const tgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id ?? Number(localStorage.getItem('tg_id'))
+        const { data: owned } = await supabase.from('barbershops').select('id').eq('owner_tg_id', tgId).maybeSingle()
+        if (owned?.id) tid = owned.id
+      } else if (!tid) {
+        const tgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id ?? Number(localStorage.getItem('tg_id'))
+        const { data: me } = await supabase.from('barbers').select('id,tenant_id').eq('tg_id', tgId).eq('is_active', true).maybeSingle()
+        if (me) { tid = me.tenant_id; setForm(f => ({ ...f, barber_id: me.id })) }
+      }
+
+      if (!tid) { setLoading(false); return }
+      setTenantId(tid)
+
+      const { data: b } = await supabase.from('barbers').select('id,name').eq('tenant_id', tid).eq('is_active', true)
       setBarbers(b ?? [])
 
       if (ownerMode) {
-        // Owner barcha ustalarni ko'radi
         if (b?.length) setForm(f => ({ ...f, barber_id: b[0].id }))
-      } else {
-        // Usta faqat o'zini ko'radi
-        const tgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id
-          ?? Number(localStorage.getItem('tg_id'))
-        const mine = b?.find(x => {
-          // barber_id ni tg_id bilan moslashtirish uchun barbers jadvalidan to'liq ma'lumot kerak
-          return true // quyida alohida query
-        })
+      } else if (!form.barber_id) {
+        const tgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id ?? Number(localStorage.getItem('tg_id'))
         const { data: me } = await supabase.from('barbers').select('id').eq('tg_id', tgId).eq('is_active', true).maybeSingle()
         if (me) setForm(f => ({ ...f, barber_id: me.id }))
       }
@@ -66,7 +75,7 @@ export default function SlotManager({ ownerMode = false }) {
     if (end <= start) { setError('Tugash vaqti boshlanish vaqtidan keyin bo\'lishi kerak'); setSubmitting(false); return }
 
     const { data, error: err } = await supabase.from('blocked_slots').insert({
-      tenant_id: TENANT_ID,
+      tenant_id: tenantId,
       barber_id: form.barber_id,
       start_time: start.toISOString(),
       end_time: end.toISOString(),

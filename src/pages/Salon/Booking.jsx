@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase, getTenantId } from '../../config/supabaseClient'
+import { haptic } from '../../config/haptic'
 import Layout from '../../components/Layout'
 import { Loader, Input } from '../../components/UiKit'
 
@@ -12,6 +13,7 @@ function buildSlots(date, startTime, endTime, bookedRanges, durationMin) {
   const [eh, em] = endTime.split(':').map(Number)
   const base = new Date(date)
   base.setSeconds(0, 0)
+  const now = new Date()
 
   let cur = new Date(base)
   cur.setHours(sh, sm)
@@ -21,7 +23,8 @@ function buildSlots(date, startTime, endTime, bookedRanges, durationMin) {
   while (new Date(cur.getTime() + durationMin * 60000) <= end) {
     const slotStart = new Date(cur)
     const slotEnd = new Date(cur.getTime() + durationMin * 60000)
-    const busy = bookedRanges.some(
+    const isPast = slotStart < now
+    const busy = isPast || bookedRanges.some(
       ({ s, e }) => slotStart < new Date(e) && slotEnd > new Date(s)
     )
     slots.push({ time: slotStart, busy })
@@ -58,7 +61,7 @@ export default function SalonBooking() {
   useEffect(() => {
     window.Telegram?.WebApp?.expand?.()
     async function loadTenant() {
-      const data = await getTenantId()
+      const data = await getTenantId(slug)
       setTenantData(data)
     }
     loadTenant()
@@ -114,6 +117,20 @@ export default function SalonBooking() {
     setError('')
     const tgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id ?? null
     const end = new Date(sel.slot.getTime() + sel.service.duration_minutes * 60000)
+
+    // Conflict tekshiruvi
+    const { data: conflicts } = await supabase.from('appointments')
+      .select('id')
+      .eq('barber_id', sel.barber.id)
+      .lt('start_time', end.toISOString())
+      .gt('end_time', sel.slot.toISOString())
+      .not('appointment_status', 'eq', 'cancelled')
+      .limit(1)
+    if (conflicts?.length) {
+      setError('Bu vaqt allaqachon band. Iltimos boshqa vaqt tanlang.')
+      setSubmitting(false)
+      return
+    }
 
     const { error: err } = await supabase.from('appointments').insert({
       tenant_id: tenantData.id,
@@ -174,7 +191,7 @@ export default function SalonBooking() {
         <div className="flex flex-col gap-3">
           <h2 className="text-lg font-semibold text-white mb-4">Xizmat tanlang</h2>
           {services.map(s => (
-            <div key={s.id} onClick={() => setSel(f => ({ ...f, service: s }))}
+            <div key={s.id} onClick={() => { haptic.select(); setSel(f => ({ ...f, service: s })) }}
               className={`glass rounded-2xl p-4 cursor-pointer transition-all active:scale-[0.98]
                 ${sel.service?.id === s.id ? 'gold-border shadow-gold' : 'border border-white/5'}`}>
               <div className="flex justify-between items-center">
@@ -193,7 +210,7 @@ export default function SalonBooking() {
         <div className="flex flex-col gap-3">
           <h2 className="text-lg font-semibold text-white mb-4">Usta tanlang</h2>
           {barbers.map(b => (
-            <div key={b.id} onClick={() => setSel(f => ({ ...f, barber: b }))}
+            <div key={b.id} onClick={() => { haptic.select(); setSel(f => ({ ...f, barber: b })) }}
               className={`glass rounded-2xl p-4 cursor-pointer transition-all active:scale-[0.98] flex items-center gap-4
                 ${sel.barber?.id === b.id ? 'gold-border shadow-gold' : 'border border-white/5'}`}>
               <div className="w-12 h-12 rounded-full bg-obsidian-700 overflow-hidden flex-shrink-0">
@@ -233,7 +250,7 @@ export default function SalonBooking() {
                   const selected = sel.slot?.getTime() === s.time.getTime()
                   return (
                     <button key={i} type="button" disabled={s.busy}
-                      onClick={() => setSel(f => ({ ...f, slot: s.time }))}
+                      onClick={() => { haptic.select(); setSel(f => ({ ...f, slot: s.time })) }}
                       className={`py-2.5 rounded-xl text-xs font-medium transition-all active:scale-95
                         ${s.busy ? 'bg-white/5 text-white/20 cursor-not-allowed line-through' :
                           selected ? 'bg-gold text-obsidian-900 shadow-gold' :

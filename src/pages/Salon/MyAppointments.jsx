@@ -14,7 +14,7 @@ export default function SalonAppointments() {
   useEffect(() => {
     window.Telegram?.WebApp?.expand?.()
     async function loadTenant() {
-      const data = await getTenantId()
+      const data = await getTenantId(slug)
       setTenantData(data)
     }
     loadTenant()

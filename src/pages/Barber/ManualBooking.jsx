@@ -14,6 +14,7 @@ export default function ManualBooking({ ownerMode = false }) {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+  const [tenantId, setTenantId] = useState(TENANT_ID)
 
   const [form, setForm] = useState({
     barber_id: '',
@@ -28,9 +29,24 @@ export default function ManualBooking({ ownerMode = false }) {
   // Load barbers + services
   useEffect(() => {
     async function load() {
+      let tenantId = TENANT_ID
+
+      if (ownerMode) {
+        const tgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id ?? Number(localStorage.getItem('tg_id'))
+        const { data: owned } = await supabase.from('barbershops').select('id').eq('owner_tg_id', tgId).maybeSingle()
+        if (owned?.id) tenantId = owned.id
+      } else if (!tenantId) {
+        const tgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id ?? Number(localStorage.getItem('tg_id'))
+        const { data: me } = await supabase.from('barbers').select('id,name,daily_start_time,daily_end_time,tenant_id').eq('tg_id', tgId).eq('is_active', true).maybeSingle()
+        if (me) { tenantId = me.tenant_id; setBarbers([me]); setForm(f => ({ ...f, barber_id: me.id })) }
+      }
+
+      if (!tenantId) { setLoading(false); return }
+      setTenantId(tenantId)
+
       const [{ data: b }, { data: s }] = await Promise.all([
-        supabase.from('barbers').select('id,name,daily_start_time,daily_end_time').eq('tenant_id', TENANT_ID).eq('is_active', true),
-        supabase.from('services').select('id,name,price,duration_minutes').eq('tenant_id', TENANT_ID),
+        supabase.from('barbers').select('id,name,daily_start_time,daily_end_time').eq('tenant_id', tenantId).eq('is_active', true),
+        supabase.from('services').select('id,name,price,duration_minutes').eq('tenant_id', tenantId),
       ])
       setServices(s ?? [])
       if (s?.length) setForm(f => ({ ...f, service_id: s[0].id }))
@@ -38,9 +54,8 @@ export default function ManualBooking({ ownerMode = false }) {
       if (ownerMode) {
         setBarbers(b ?? [])
         if (b?.length) setForm(f => ({ ...f, barber_id: b[0].id }))
-      } else {
-        const tgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id
-          ?? Number(localStorage.getItem('tg_id'))
+      } else if (!form.barber_id && b?.length) {
+        const tgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id ?? Number(localStorage.getItem('tg_id'))
         const { data: me } = await supabase.from('barbers').select('id,name,daily_start_time,daily_end_time').eq('tg_id', tgId).eq('is_active', true).maybeSingle()
         if (me) { setBarbers([me]); setForm(f => ({ ...f, barber_id: me.id })) }
       }
@@ -62,8 +77,22 @@ export default function ManualBooking({ ownerMode = false }) {
     start.setHours(h, m, 0, 0)
     const end = new Date(start.getTime() + selectedService.duration_minutes * 60000)
 
+    // Conflict tekshiruvi
+    const { data: conflicts } = await supabase.from('appointments')
+      .select('id')
+      .eq('barber_id', form.barber_id)
+      .lt('start_time', end.toISOString())
+      .gt('end_time', start.toISOString())
+      .not('appointment_status', 'eq', 'cancelled')
+      .limit(1)
+    if (conflicts?.length) {
+      setError('Bu vaqt allaqachon band. Boshqa vaqt tanlang.')
+      setSubmitting(false)
+      return
+    }
+
     const { error: err } = await supabase.from('appointments').insert({
-      tenant_id: TENANT_ID,
+      tenant_id: tenantId,
       barber_id: form.barber_id,
       customer_name: form.customer_name.trim(),
       customer_phone: form.customer_phone.trim(),

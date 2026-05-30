@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase, TENANT_ID } from '../../config/supabaseClient'
 import Layout from '../../components/Layout'
-import { Btn, Card, Loader, SectionTitle } from '../../components/UiKit'
+import { Btn, Card, Loader, SectionTitle, CardSkeleton } from '../../components/UiKit'
 
 export default function Home() {
   const navigate = useNavigate()
@@ -26,7 +26,16 @@ export default function Home() {
 
   if (loading) return (
     <Layout>
-      <div className="flex justify-center mt-20"><Loader /></div>
+      <div className="flex flex-col items-center pt-8 pb-6 gap-3">
+        <div className="w-20 h-20 rounded-3xl bg-white/5 animate-pulse" />
+        <div className="h-6 w-40 bg-white/5 rounded animate-pulse" />
+        <div className="h-4 w-56 bg-white/5 rounded animate-pulse" />
+      </div>
+      <div className="flex flex-col gap-3 mb-8">
+        <div className="h-12 bg-white/5 rounded-2xl animate-pulse" />
+        <div className="h-12 bg-white/5 rounded-2xl animate-pulse" />
+      </div>
+      <CardSkeleton count={3} />
     </Layout>
   )
 

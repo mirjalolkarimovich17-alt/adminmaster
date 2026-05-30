@@ -1,3 +1,6 @@
+import { useState, createContext, useContext } from 'react'
+import { haptic } from '../../config/haptic'
+
 // ── Button ──────────────────────────────────────────────────
 export function Btn({ children, onClick, variant = 'gold', disabled, className = '', type = 'button' }) {
   const base = 'w-full py-3.5 rounded-2xl font-semibold text-sm tracking-wide transition-all duration-200 active:scale-95 disabled:opacity-40 disabled:pointer-events-none'
@@ -6,8 +9,12 @@ export function Btn({ children, onClick, variant = 'gold', disabled, className =
     ghost: 'glass gold-border text-gold hover:bg-gold/10',
     danger: 'bg-red-500/20 gold-border border-red-500/40 text-red-400 hover:bg-red-500/30',
   }
+  const handleClick = (e) => {
+    haptic.light()
+    onClick?.(e)
+  }
   return (
-    <button type={type} onClick={onClick} disabled={disabled} className={`${base} ${variants[variant]} ${className}`}>
+    <button type={type} onClick={handleClick} disabled={disabled} className={`${base} ${variants[variant]} ${className}`}>
       {children}
     </button>
   )
@@ -86,4 +93,64 @@ export function SectionTitle({ children }) {
   return (
     <h2 className="text-xs font-semibold tracking-widest uppercase text-gold/70 mb-3">{children}</h2>
   )
+}
+
+// ── Skeleton ─────────────────────────────────────────────────
+export function Skeleton({ className = '', count = 1 }) {
+  return Array.from({ length: count }).map((_, i) => (
+    <div key={i} className={`animate-pulse rounded-2xl bg-white/5 ${className}`} />
+  ))
+}
+
+export function CardSkeleton({ count = 3 }) {
+  return (
+    <div className="flex flex-col gap-3">
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className="animate-pulse glass rounded-2xl p-4 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-full bg-white/10" />
+          <div className="flex-1 space-y-2">
+            <div className="h-3.5 bg-white/10 rounded w-3/4" />
+            <div className="h-2.5 bg-white/5 rounded w-1/2" />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ── Toast ────────────────────────────────────────────────────
+const ToastCtx = createContext()
+
+export function ToastProvider({ children }) {
+  const [toasts, setToasts] = useState([])
+
+  const show = (message, type = 'success', duration = 3000) => {
+    const id = Date.now()
+    setToasts(prev => [...prev, { id, message, type }])
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), duration)
+  }
+
+  return (
+    <ToastCtx.Provider value={show}>
+      {children}
+      <div style={{ position: 'fixed', top: 16, left: '50%', transform: 'translateX(-50%)', zIndex: 99999, display: 'flex', flexDirection: 'column', gap: 8, pointerEvents: 'none', width: '90%', maxWidth: 360 }}>
+        {toasts.map(t => (
+          <div key={t.id} style={{
+            padding: '12px 16px', borderRadius: 14,
+            background: t.type === 'error' ? 'rgba(239,68,68,0.95)' : t.type === 'warning' ? 'rgba(234,179,8,0.95)' : 'rgba(34,197,94,0.95)',
+            backdropFilter: 'blur(12px)', color: '#fff', fontSize: 13, fontWeight: 600,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.3)', animation: 'toastIn 0.3s ease',
+            display: 'flex', alignItems: 'center', gap: 8,
+          }}>
+            {t.type === 'error' ? '✕' : t.type === 'warning' ? '⚠' : '✓'} {t.message}
+          </div>
+        ))}
+      </div>
+      <style>{`@keyframes toastIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}`}</style>
+    </ToastCtx.Provider>
+  )
+}
+
+export function useToast() {
+  return useContext(ToastCtx)
 }

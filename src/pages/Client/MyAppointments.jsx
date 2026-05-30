@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase, TENANT_ID } from '../../config/supabaseClient'
+import { haptic } from '../../config/haptic'
 import Layout from '../../components/Layout'
 import { Card, Badge, Loader, SectionTitle, Btn } from '../../components/UiKit'
 
@@ -14,7 +15,7 @@ export default function MyAppointments() {
   useEffect(() => {
     if (!tgId) { setLoading(false); return }
     supabase.from('appointments')
-      .select('id,start_time,end_time,appointment_status,barbers(name),services:barber_id(name)')
+      .select('id,start_time,end_time,appointment_status,barbers(name)')
       .eq('tenant_id', TENANT_ID)
       .eq('customer_tg_id', tgId)
       .order('start_time', { ascending: false })
@@ -31,7 +32,15 @@ export default function MyAppointments() {
     hour: '2-digit', minute: '2-digit',
   })
 
+  async function cancelAppointment(id) {
+    haptic.medium()
+    await supabase.from('appointments').update({ appointment_status: 'cancelled' }).eq('id', id)
+    setAppts(prev => prev.map(a => a.id === id ? { ...a, appointment_status: 'cancelled' } : a))
+    haptic.success()
+  }
+
   function AppointmentCard({ a }) {
+    const canCancel = a.appointment_status === 'booked' && new Date(a.start_time) > now
     return (
       <Card className="flex flex-col gap-2">
         <div className="flex justify-between items-start">
@@ -41,6 +50,12 @@ export default function MyAppointments() {
           </div>
           <Badge status={a.appointment_status} />
         </div>
+        {canCancel && (
+          <button onClick={() => cancelAppointment(a.id)}
+            className="mt-1 w-full py-2 rounded-xl bg-red-500/10 border border-red-500/25 text-red-400 text-xs font-medium active:scale-95 transition-all">
+            Bekor qilish
+          </button>
+        )}
       </Card>
     )
   }

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { supabase } from './config/supabaseClient'
+import { ToastProvider } from './components/UiKit'
 import Home from './pages/Client/Home.jsx'
 import Booking from './pages/Client/Booking.jsx'
 import MyAppointments from './pages/Client/MyAppointments.jsx'
@@ -112,8 +113,25 @@ function RoleGate() {
 }
 
 export default function App() {
+  const [offline, setOffline] = useState(!navigator.onLine)
+
+  useEffect(() => {
+    const on = () => setOffline(false)
+    const off = () => setOffline(true)
+    window.addEventListener('online', on)
+    window.addEventListener('offline', off)
+    return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off) }
+  }, [])
+
   return (
+    <ToastProvider>
     <BrowserRouter>
+      {offline && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 9999, padding: '10px 16px', background: 'rgba(239,68,68,0.95)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+          <svg width="16" height="16" fill="none" stroke="#fff" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M18.364 5.636a9 9 0 010 12.728M5.636 18.364a9 9 0 010-12.728M8.464 15.536a5 5 0 010-7.072M15.536 8.464a5 5 0 010 7.072" /><line x1="2" y1="2" x2="22" y2="22" /></svg>
+          <span style={{ color: '#fff', fontSize: 13, fontWeight: 600 }}>Internet aloqasi yo'q</span>
+        </div>
+      )}
       <Routes>
         <Route path="/" element={<RoleGate />} />
 
@@ -143,5 +161,6 @@ export default function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
+    </ToastProvider>
   )
 }

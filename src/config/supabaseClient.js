@@ -6,14 +6,12 @@ export const supabase = createClient(
 )
 
 // Dynamic tenant from URL or env
-export const getTenantId = async () => {
-  const url = window.location.pathname
-  const slugMatch = url.match(/\/@([^/]+)/)
-  if (slugMatch) {
+export const getTenantId = async (slug) => {
+  if (slug) {
     const { data } = await supabase
       .from('barbershops')
       .select('id, name, theme_color, logo')
-      .eq('slug', slugMatch[1])
+      .eq('slug', slug)
       .maybeSingle()
     return data
   }
